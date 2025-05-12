@@ -61,5 +61,3 @@ const queryCybersecurityKnowledgeBaseFlow = ai.defineFlow(
     return output!;
   }
 );
-
-```

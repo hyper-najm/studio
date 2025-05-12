@@ -47,5 +47,3 @@ const generateSecurityAwarenessTipFlow = ai.defineFlow(
     return output!;
   }
 );
-
-```
