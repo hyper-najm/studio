@@ -80,5 +80,3 @@ const analyzePhishingAttemptFlow = ai.defineFlow(
     return output!;
   }
 );
-
-```
