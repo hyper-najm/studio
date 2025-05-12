@@ -14,7 +14,10 @@ import {z} from 'genkit';
 const SummarizeCybersecurityReportInputSchema = z.object({
   report: z
     .string()
-    .describe('The cybersecurity report to summarize.'),
+    .min(100, { message: 'Report content must be at least 100 characters long.' })
+    .max(50000, { message: 'Report content is too long (max 50000 characters).' })
+    .describe('The cybersecurity report text content to summarize.'),
+  reportFileName: z.string().optional().describe('The original file name of the report, if applicable. This provides context to the AI about the source.'),
 });
 export type SummarizeCybersecurityReportInput = z.infer<typeof SummarizeCybersecurityReportInputSchema>;
 
@@ -35,9 +38,12 @@ const prompt = ai.definePrompt({
   input: {schema: SummarizeCybersecurityReportInputSchema},
   output: {schema: SummarizeCybersecurityReportOutputSchema},
   prompt: `You are an expert cybersecurity analyst. Your task is to summarize a cybersecurity report and provide key findings (explaining their potential impact or implications), risk score (and what it signifies), and recommended actions.
+  {{#if reportFileName}}
+  The report was provided from a file named: "{{reportFileName}}".
+  {{/if}}
 
-  Report:
-  {{report}}
+  Report Content:
+  {{{report}}}
   \n
   Provide a concise summary, highlight key findings with their implications, provide the risk score with its significance, and suggest recommended actions based on the report.
   Follow these instructions closely:
