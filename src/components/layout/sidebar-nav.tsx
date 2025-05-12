@@ -14,6 +14,7 @@ import {
   BookText,
   Activity,
   ShieldAlert,
+  ShieldX, // Added for Malware Detector
   LucideIcon,
 } from 'lucide-react';
 
@@ -27,6 +28,7 @@ const navItems: NavItem[] = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/phishing-analyzer', label: 'Phishing Analyzer', icon: ShieldCheck },
   { href: '/knowledge-base', label: 'Knowledge Base', icon: BookText },
+  { href: '/malware-detector', label: 'Malware Detector', icon: ShieldX },
   { href: '/predictive-sentinel', label: 'Predictive Sentinel', icon: Activity },
   { href: '/autonomous-responder', label: 'Autonomous Responder', icon: ShieldAlert },
 ];

@@ -1,3 +1,4 @@
+// src/lib/actions.ts
 'use server';
 
 import { 
@@ -20,6 +21,11 @@ import {
   type SummarizeCybersecurityReportInput, 
   type SummarizeCybersecurityReportOutput 
 } from '@/ai/flows/summarize-cybersecurity-report';
+import {
+  analyzeMalware as _analyzeMalware,
+  type AnalyzeMalwareInput,
+  type AnalyzeMalwareOutput,
+} from '@/ai/flows/analyze-malware';
 
 export async function analyzePhishingAttempt(input: AnalyzePhishingAttemptInput): Promise<AnalyzePhishingAttemptOutput> {
   try {
@@ -54,5 +60,21 @@ export async function summarizeCybersecurityReport(input: SummarizeCybersecurity
   } catch (error) {
     console.error("Error in summarizeCybersecurityReport:", error);
     throw new Error("Failed to summarize report. Please try again.");
+  }
+}
+
+export async function analyzeMalware(input: AnalyzeMalwareInput): Promise<AnalyzeMalwareOutput> {
+  try {
+    return await _analyzeMalware(input);
+  } catch (error) {
+    console.error("Error in analyzeMalware:", error);
+    // It's good practice to log the specific error for server-side debugging.
+    // For the client, provide a generic error message.
+    if (error instanceof Error) {
+        console.error(`analyzeMalware action failed: ${error.message}`);
+    } else {
+        console.error('analyzeMalware action failed with an unknown error.');
+    }
+    throw new Error('Failed to analyze for malware. Please check the input and try again.');
   }
 }

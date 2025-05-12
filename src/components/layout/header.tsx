@@ -22,6 +22,8 @@ const getPageTitle = (pathname: string): string => {
       return 'AI Phishing Hunter';
     case '/knowledge-base':
       return 'Cybersecurity RAG';
+    case '/malware-detector':
+      return 'Malware Detector';
     case '/predictive-sentinel':
       return 'Predictive Sentinel';
     case '/autonomous-responder':
