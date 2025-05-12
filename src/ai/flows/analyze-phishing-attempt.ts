@@ -4,7 +4,7 @@
 /**
  * @fileOverview AI-powered phishing detection flow.
  *
- * - analyzePhishingAttempt - Analyzes URLs, text snippets, or email content for phishing threats.
+ * - analyzePhishingAttempt - Analyzes URLs, text snippets, email content, or images for phishing threats.
  * - AnalyzePhishingAttemptInput - The input type for the analyzePhishingAttempt function.
  * - AnalyzePhishingAttemptOutput - The return type for the analyzePhishingAttempt function.
  */
@@ -13,8 +13,12 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const AnalyzePhishingAttemptInputSchema = z.object({
-  content: z.string().describe('The URL, text snippet, or email content to analyze for phishing threats.'),
+  content: z.string().min(10, { message: 'Content must be at least 10 characters long if provided.' }).optional().describe('The URL, text snippet, or email content to analyze for phishing threats.'),
+  imageDataUri: z.string().optional().describe("An image data URI (e.g., a screenshot of a suspicious email or website) that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'.")
+}).refine(data => data.content || data.imageDataUri, {
+  message: "Either text content or an image must be provided for analysis.",
 });
+
 export type AnalyzePhishingAttemptInput = z.infer<typeof AnalyzePhishingAttemptInputSchema>;
 
 const AnalyzePhishingAttemptOutputSchema = z.object({
@@ -32,9 +36,15 @@ const prompt = ai.definePrompt({
   name: 'analyzePhishingAttemptPrompt',
   input: {schema: AnalyzePhishingAttemptInputSchema},
   output: {schema: AnalyzePhishingAttemptOutputSchema},
-  prompt: `You are an AI cybersecurity expert specializing in phishing detection. Analyze the provided content for potential phishing threats, providing a risk score (0-100), a list of identified threats, and a detailed explanation.
+  prompt: `You are an AI cybersecurity expert specializing in phishing detection. Analyze the provided content and/or image for potential phishing threats, providing a risk score (0-100), a list of identified threats, and a detailed explanation.
 
+{{#if content}}
 Content to Analyze: {{{content}}}
+{{/if}}
+{{#if imageDataUri}}
+Image to Analyze: {{media url=imageDataUri}}
+Instruction for image: If an image is provided (e.g., a screenshot), analyze its visual elements for phishing indicators such as suspicious branding, urgent calls to action, unusual URLs in text, or generic greetings.
+{{/if}}
 
 Respond in a JSON format:
 {

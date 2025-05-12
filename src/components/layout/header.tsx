@@ -1,3 +1,4 @@
+
 'use client';
 
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -19,7 +20,7 @@ const getPageTitle = (pathname: string): string => {
     case '/':
       return 'Threat Dashboard';
     case '/phishing-analyzer':
-      return 'AI Phishing Hunter';
+      return 'Advanced Input Analyzer';
     case '/knowledge-base':
       return 'Cybersecurity RAG';
     case '/malware-detector':
