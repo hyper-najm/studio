@@ -10,9 +10,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { queryCybersecurityKnowledgeBase } from '@/lib/actions';
 import type { QueryCybersecurityKnowledgeBaseOutput } from '@/ai/flows/query-cybersecurity-knowledge-base';
-import { Loader2, HelpCircle, AlertTriangle, BookOpen } from 'lucide-react';
+import { Loader2, HelpCircle, AlertTriangle, BookOpen, Mic } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
   query: z.string().min(5, { message: 'Query must be at least 5 characters long.' }),
@@ -24,6 +26,7 @@ export default function KnowledgeBasePage() {
   const [queryResult, setQueryResult] = useState<QueryCybersecurityKnowledgeBaseOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -52,7 +55,7 @@ export default function KnowledgeBasePage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><HelpCircle />Cybersecurity Knowledge Base</CardTitle>
           <CardDescription>
-            Ask questions to our intelligent cybersecurity advisor. Get accurate and up-to-date information and best practices.
+            Ask questions to our intelligent cybersecurity advisor. Get accurate, educational, and up-to-date information and best practices.
           </CardDescription>
         </CardHeader>
         <Form {...form}>
@@ -64,13 +67,25 @@ export default function KnowledgeBasePage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel htmlFor="query-input">Your Cybersecurity Question</FormLabel>
-                    <FormControl>
-                      <Input
-                        id="query-input"
-                        placeholder="e.g., What are common ransomware attack vectors?"
-                        {...field}
-                      />
-                    </FormControl>
+                    <div className="flex items-center gap-2">
+                      <FormControl>
+                        <Input
+                          id="query-input"
+                          placeholder="e.g., What are common ransomware attack vectors?"
+                          {...field}
+                          className="flex-grow"
+                        />
+                      </FormControl>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => toast({ title: "Voice Input", description: "Voice input feature coming soon!"})}
+                        aria-label="Use voice input"
+                      >
+                        <Mic className="h-5 w-5" />
+                      </Button>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -105,7 +120,7 @@ export default function KnowledgeBasePage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><BookOpen />Advisor's Response</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6"> {/* Increased spacing for new section */}
             <div>
               <h3 className="font-semibold text-lg mb-1">Answer:</h3>
               <div className="p-3 rounded-md border bg-muted/30 text-sm">
@@ -115,11 +130,21 @@ export default function KnowledgeBasePage() {
             {queryResult.sources && queryResult.sources.length > 0 && (
               <div>
                 <h3 className="font-semibold text-lg mb-1">Sources:</h3>
-                <ul className="list-disc list-inside space-y-1 rounded-md border p-3 bg-muted/30">
+                <ul className="list-disc list-inside space-y-1 rounded-md border p-3 bg-muted/30 text-sm">
                   {queryResult.sources.map((source, index) => (
                     <li key={index} className="text-sm">{source}</li>
                   ))}
                 </ul>
+              </div>
+            )}
+            {queryResult.furtherLearning && queryResult.furtherLearning.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-lg mb-1">Further Learning Concepts:</h3>
+                <div className="flex flex-wrap gap-2 p-3 rounded-md border bg-muted/30">
+                  {queryResult.furtherLearning.map((concept, index) => (
+                    <Badge key={index} variant="secondary" className="text-sm">{concept}</Badge>
+                  ))}
+                </div>
               </div>
             )}
           </CardContent>
@@ -128,3 +153,5 @@ export default function KnowledgeBasePage() {
     </div>
   );
 }
+
+```

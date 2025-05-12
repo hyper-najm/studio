@@ -15,7 +15,7 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { analyzePhishingAttempt } from '@/lib/actions';
 import type { AnalyzePhishingAttemptOutput, AnalyzePhishingAttemptInput } from '@/ai/flows/analyze-phishing-attempt';
-import { Loader2, ShieldAlert, ShieldCheck, AlertTriangle, Upload } from 'lucide-react';
+import { Loader2, ShieldAlert, ShieldCheck, AlertTriangle, Upload, Mic } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 
@@ -42,7 +42,7 @@ type FormData = z.infer<typeof formSchema>;
 export default function PhishingAnalyzerPage() {
   const [analysisResult, setAnalysisResult] = useState<AnalyzePhishingAttemptOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null); // Corrected: state variable is `error`, setter is `setError`
+  const [error, setError] = useState<string | null>(null);
   const [uploadedImagePreview, setUploadedImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -134,7 +134,7 @@ export default function PhishingAnalyzerPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><ShieldAlert />Advanced Input Analyzer</CardTitle>
           <CardDescription>
-            Submit URLs, text snippets, email content, or upload an image (e.g., screenshot of a suspicious message) for in-depth phishing analysis.
+            Submit URLs, text snippets, email content, or upload an image (e.g., screenshot of a suspicious message) for in-depth phishing analysis and educational feedback.
           </CardDescription>
         </CardHeader>
         <Form {...form}>
@@ -146,14 +146,26 @@ export default function PhishingAnalyzerPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel htmlFor="content-input">Text Content (URL, Email Snippet, etc.)</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        id="content-input"
-                        placeholder="Paste URL, email body, or text snippet here..."
-                        className="min-h-[120px] resize-y"
-                        {...field}
-                      />
-                    </FormControl>
+                    <div className="relative">
+                      <FormControl>
+                        <Textarea
+                          id="content-input"
+                          placeholder="Paste URL, email body, or text snippet here..."
+                          className="min-h-[120px] resize-y pr-10"
+                          {...field}
+                        />
+                      </FormControl>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => toast({ title: "Voice Input", description: "Voice input feature coming soon!" })}
+                        aria-label="Use voice input for text content"
+                        className="absolute right-1 top-1.5 text-muted-foreground hover:text-foreground"
+                      >
+                        <Mic className="h-5 w-5" />
+                      </Button>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -161,19 +173,22 @@ export default function PhishingAnalyzerPage() {
               <FormField
                 control={form.control}
                 name="imageFile"
-                render={({ field }) => (
+                render={({ field }) => ( // field is not directly used for input type="file" by RHF in the same way, but important for context
                   <FormItem>
                     <FormLabel htmlFor="imageFile-input">Upload Image (Optional Screenshot)</FormLabel>
-                    <FormControl>
-                       <Input
-                        id="imageFile-input"
-                        type="file"
-                        accept={ACCEPTED_IMAGE_TYPES.join(',')}
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
-                      />
-                    </FormControl>
+                     <div className="flex items-center gap-2">
+                      <FormControl>
+                        <Input
+                          id="imageFile-input"
+                          type="file"
+                          accept={ACCEPTED_IMAGE_TYPES.join(',')}
+                          ref={fileInputRef}
+                          onChange={handleFileChange} // Use custom handler
+                          className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 flex-grow"
+                        />
+                      </FormControl>
+                      {/* Placeholder for potential future voice command for file upload if needed */}
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -216,7 +231,7 @@ export default function PhishingAnalyzerPage() {
               {analysisResult.riskScore > 70 ? <ShieldAlert className="text-destructive" /> : analysisResult.riskScore > 40 ? <ShieldAlert className="text-yellow-500" /> : <ShieldCheck className="text-green-500" />}
               Comprehensive Analysis Report
             </CardTitle>
-            <CardDescription>Detailed results of the phishing analysis.</CardDescription>
+            <CardDescription>Detailed results and educational insights from the phishing analysis.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -230,7 +245,7 @@ export default function PhishingAnalyzerPage() {
             <div>
               <h3 className="font-semibold text-lg mb-1">Threats Identified:</h3>
               {analysisResult.threatsIdentified.length > 0 ? (
-                <ul className="list-disc list-inside space-y-1 rounded-md border p-3 bg-muted/30">
+                <ul className="list-disc list-inside space-y-1 rounded-md border p-3 bg-muted/30 text-sm">
                   {analysisResult.threatsIdentified.map((threat, index) => (
                     <li key={index} className="text-sm">{threat}</li>
                   ))}
@@ -241,7 +256,7 @@ export default function PhishingAnalyzerPage() {
             </div>
             <div>
               <h3 className="font-semibold text-lg mb-1">Explanation & Recommendations:</h3>
-              <div className="p-3 rounded-md border bg-muted/30 text-sm max-h-60 overflow-y-auto">
+              <div className="p-3 rounded-md border bg-muted/30 text-sm max-h-96 overflow-y-auto"> {/* Increased max-h */}
                 <p className="whitespace-pre-wrap">{analysisResult.explanation}</p>
               </div>
             </div>
@@ -251,3 +266,5 @@ export default function PhishingAnalyzerPage() {
     </div>
   );
 }
+
+```

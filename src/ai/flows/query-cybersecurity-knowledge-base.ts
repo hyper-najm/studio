@@ -5,7 +5,7 @@
  * @fileOverview This file defines a Genkit flow for querying a cybersecurity knowledge base.
  *
  * The flow allows users to query a knowledge base using natural language to find information about specific threats,
- * vulnerabilities, or best practices.
+ * vulnerabilities, or best practices, with an emphasis on education.
  *
  * @param queryCybersecurityKnowledgeBase - A function that handles the querying process.
  * @param QueryCybersecurityKnowledgeBaseInput - The input type for the queryCybersecurityKnowledgeBase function.
@@ -21,8 +21,9 @@ const QueryCybersecurityKnowledgeBaseInputSchema = z.object({
 export type QueryCybersecurityKnowledgeBaseInput = z.infer<typeof QueryCybersecurityKnowledgeBaseInputSchema>;
 
 const QueryCybersecurityKnowledgeBaseOutputSchema = z.object({
-  answer: z.string().describe('The answer from the cybersecurity knowledge base in response to the query.'),
+  answer: z.string().describe('The answer from the cybersecurity knowledge base in response to the query, presented in an educational and easy-to-understand manner.'),
   sources: z.array(z.string()).describe('A list of sources used to generate the answer.'),
+  furtherLearning: z.array(z.string()).optional().describe('Keywords or concepts for further learning related to the query.'),
 });
 export type QueryCybersecurityKnowledgeBaseOutput = z.infer<typeof QueryCybersecurityKnowledgeBaseOutputSchema>;
 
@@ -34,13 +35,18 @@ const queryCybersecurityKnowledgeBasePrompt = ai.definePrompt({
   name: 'queryCybersecurityKnowledgeBasePrompt',
   input: {schema: QueryCybersecurityKnowledgeBaseInputSchema},
   output: {schema: QueryCybersecurityKnowledgeBaseOutputSchema},
-  prompt: `You are an intelligent cybersecurity advisor bot. Use your knowledge of common security threats, vulnerabilities, and security best practices to answer the following query.
+  prompt: `You are an intelligent cybersecurity advisor and educator bot. Use your knowledge of common security threats, vulnerabilities, and security best practices to answer the following query.
 
 Query: {{{query}}}
 
-Answer in a comprehensive and easy to understand manner.
+Answer in a comprehensive, educational, and easy-to-understand manner.
+- Break down complex topics into digestible parts.
+- Explain technical terms clearly.
+- Provide actionable advice or solutions where appropriate.
+- If possible, suggest 1-2 keywords or concepts for further learning related to the query (for the 'furtherLearning' field).
+- Include the specific sources you used to answer the question (for the 'sources' field).
 
-Include the specific sources you used to answer the question.
+Your primary goal is to educate the user while answering their question accurately.
 `,
 });
 
@@ -55,3 +61,5 @@ const queryCybersecurityKnowledgeBaseFlow = ai.defineFlow(
     return output!;
   }
 );
+
+```

@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { generateSecurityAwarenessTip } from '@/lib/actions';
 import type { GenerateSecurityAwarenessTipOutput } from '@/ai/flows/generate-security-awareness-tip';
-import { Loader2, Lightbulb, AlertTriangle, Activity } from 'lucide-react';
+import { Loader2, Lightbulb, AlertTriangle, Activity, Mic } from 'lucide-react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useToast } from '@/hooks/use-toast';
 
 
 const tipFormSchema = z.object({
@@ -23,6 +24,7 @@ export default function PredictiveSentinelPage() {
   const [tipResult, setTipResult] = useState<GenerateSecurityAwarenessTipOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const form = useForm<TipFormData>({
     resolver: zodResolver(tipFormSchema),
@@ -58,7 +60,7 @@ export default function PredictiveSentinelPage() {
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            While the full predictive engine is being built, you can generate AI-powered security awareness tips below.
+            While the full predictive engine is being built, you can generate AI-powered security awareness tips below. These tips provide educational insights into various security topics.
           </p>
         </CardContent>
       </Card>
@@ -66,7 +68,7 @@ export default function PredictiveSentinelPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Lightbulb />Proactive Security Tip Generator</CardTitle>
-          <CardDescription>Enter a topic to get a security awareness tip.</CardDescription>
+          <CardDescription>Enter a topic to get an educational security awareness tip.</CardDescription>
         </CardHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleGenerateTip)}>
@@ -77,13 +79,31 @@ export default function PredictiveSentinelPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel htmlFor="tip-topic">Tip Topic</FormLabel>
-                      <FormControl>
-                        <Input id="tip-topic" placeholder="e.g., phishing, strong passwords, Wi-Fi security" {...field} />
-                      </FormControl>
+                      <div className="flex items-center gap-2">
+                        <FormControl>
+                          <Input 
+                            id="tip-topic" 
+                            placeholder="e.g., phishing, strong passwords, Wi-Fi security" 
+                            {...field} 
+                            className="flex-grow"
+                          />
+                        </FormControl>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => toast({ title: "Voice Input", description: "Voice input feature coming soon!" })}
+                          aria-label="Use voice input for tip topic"
+                        >
+                          <Mic className="h-5 w-5" />
+                        </Button>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+            </CardContent>
+            <CardFooter>
               <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
                 {isLoading ? (
                   <>
@@ -94,7 +114,7 @@ export default function PredictiveSentinelPage() {
                   'Get Security Tip'
                 )}
               </Button>
-            </CardContent>
+            </CardFooter>
           </form>
         </Form>
         
@@ -113,7 +133,7 @@ export default function PredictiveSentinelPage() {
             <Alert variant="default" className="border-primary bg-primary/10">
               <Lightbulb className="h-4 w-4 text-primary" />
               <AlertTitle className="text-primary">Security Awareness Tip</AlertTitle>
-              <AlertDescription className="text-foreground">
+              <AlertDescription className="text-foreground whitespace-pre-wrap">
                 {tipResult.tip}
               </AlertDescription>
             </Alert>
@@ -123,3 +143,5 @@ export default function PredictiveSentinelPage() {
     </div>
   );
 }
+
+```

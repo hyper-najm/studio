@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -14,7 +15,8 @@ import {
   BookText,
   Activity,
   ShieldAlert,
-  ShieldX, // Added for Malware Detector
+  ShieldX, 
+  ServerCog, // Added for System Analyzer
   LucideIcon,
 } from 'lucide-react';
 
@@ -29,6 +31,7 @@ const navItems: NavItem[] = [
   { href: '/phishing-analyzer', label: 'Phishing Analyzer', icon: ShieldCheck },
   { href: '/knowledge-base', label: 'Knowledge Base', icon: BookText },
   { href: '/malware-detector', label: 'Malware Detector', icon: ShieldX },
+  { href: '/system-analyzer', label: 'System Analyzer', icon: ServerCog },
   { href: '/predictive-sentinel', label: 'Predictive Sentinel', icon: Activity },
   { href: '/autonomous-responder', label: 'Autonomous Responder', icon: ShieldAlert },
 ];

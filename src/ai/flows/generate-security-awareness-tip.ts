@@ -16,7 +16,7 @@ const GenerateSecurityAwarenessTipInputSchema = z.object({
 export type GenerateSecurityAwarenessTipInput = z.infer<typeof GenerateSecurityAwarenessTipInputSchema>;
 
 const GenerateSecurityAwarenessTipOutputSchema = z.object({
-  tip: z.string().describe('A security awareness tip related to the specified topic.'),
+  tip: z.string().describe('A security awareness tip related to the specified topic, including a brief explanation of its importance.'),
 });
 export type GenerateSecurityAwarenessTipOutput = z.infer<typeof GenerateSecurityAwarenessTipOutputSchema>;
 
@@ -28,7 +28,12 @@ const prompt = ai.definePrompt({
   name: 'generateSecurityAwarenessTipPrompt',
   input: {schema: GenerateSecurityAwarenessTipInputSchema},
   output: {schema: GenerateSecurityAwarenessTipOutputSchema},
-  prompt: `You are a cybersecurity awareness expert. Generate a concise and actionable security awareness tip related to the following topic:\n\nTopic: {{{topic}}}`,
+  prompt: `You are a cybersecurity awareness expert. Generate a concise and actionable security awareness tip related to the following topic. The tip should also include a brief explanation of why this practice is important for security.
+
+Topic: {{{topic}}}
+
+Format the response as: "Tip: [Your actionable tip]. Why it's important: [Brief explanation]."
+`,
 });
 
 const generateSecurityAwarenessTipFlow = ai.defineFlow(
@@ -42,3 +47,5 @@ const generateSecurityAwarenessTipFlow = ai.defineFlow(
     return output!;
   }
 );
+
+```

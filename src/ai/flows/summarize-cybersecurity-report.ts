@@ -20,8 +20,8 @@ export type SummarizeCybersecurityReportInput = z.infer<typeof SummarizeCybersec
 
 const SummarizeCybersecurityReportOutputSchema = z.object({
   summary: z.string().describe('A concise summary of the cybersecurity report.'),
-  keyFindings: z.string().describe('Key findings from the report.'),
-  riskScore: z.string().describe('The overall risk score from the report.'),
+  keyFindings: z.string().describe('Key findings from the report, including their potential impact or implications.'),
+  riskScore: z.string().describe('The overall risk score from the report and what it signifies.'),
   recommendedActions: z.string().describe('Recommended actions to address the findings.'),
 });
 export type SummarizeCybersecurityReportOutput = z.infer<typeof SummarizeCybersecurityReportOutputSchema>;
@@ -34,16 +34,16 @@ const prompt = ai.definePrompt({
   name: 'summarizeCybersecurityReportPrompt',
   input: {schema: SummarizeCybersecurityReportInputSchema},
   output: {schema: SummarizeCybersecurityReportOutputSchema},
-  prompt: `You are an expert cybersecurity analyst. Your task is to summarize a cybersecurity report and provide key findings, risk score, and recommended actions.
+  prompt: `You are an expert cybersecurity analyst. Your task is to summarize a cybersecurity report and provide key findings (explaining their potential impact or implications), risk score (and what it signifies), and recommended actions.
 
   Report:
   {{report}}
   \n
-  Provide a concise summary, highlight key findings, provide the risk score, and suggest recommended actions based on the report.
+  Provide a concise summary, highlight key findings with their implications, provide the risk score with its significance, and suggest recommended actions based on the report.
   Follow these instructions closely:
   - The summary should be no more than 3 sentences.
-  - Key findings should be a bulleted list of the most important points.
-  - The risk score should be a single number or a short phrase indicating the severity of the risk (e.g., "High", "7/10").
+  - Key findings should be a bulleted list of the most important points, briefly explaining the impact of each. For example: "- Finding: Outdated software version. Impact: Exposes system to known vulnerabilities."
+  - The risk score should be a single number or a short phrase indicating the severity of the risk (e.g., "High - Immediate attention required", "7/10 - Signifies significant exposure").
   - Recommended actions should be a list of actionable steps to mitigate the identified risks.
   \n  Format the output as a JSON object with the following keys: summary, keyFindings, riskScore, recommendedActions.
   `,
@@ -60,3 +60,5 @@ const summarizeCybersecurityReportFlow = ai.defineFlow(
     return output!;
   }
 );
+
+```
