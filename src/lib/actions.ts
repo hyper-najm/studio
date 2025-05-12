@@ -31,6 +31,11 @@ import {
   type AnalyzeSystemConfigurationInput,
   type AnalyzeSystemConfigurationOutput,
 } from '@/ai/flows/analyze-system-configuration';
+import {
+  generateGlobalThreatMapImage as _generateGlobalThreatMapImage,
+  type GenerateGlobalThreatMapImageOutput,
+} from '@/ai/flows/generate-global-threat-map-image';
+
 
 export async function analyzePhishingAttempt(input: AnalyzePhishingAttemptInput): Promise<AnalyzePhishingAttemptOutput> {
   try {
@@ -96,5 +101,19 @@ export async function analyzeSystemConfiguration(input: AnalyzeSystemConfigurati
       console.error('analyzeSystemConfiguration action failed with an unknown error.');
     }
     throw new Error('Failed to analyze system configuration. Please check the input and try again.');
+  }
+}
+
+export async function generateGlobalThreatMapImage(): Promise<GenerateGlobalThreatMapImageOutput> {
+  try {
+    return await _generateGlobalThreatMapImage();
+  } catch (error) {
+    console.error("Error in generateGlobalThreatMapImage:", error);
+    if (error instanceof Error) {
+      console.error(`generateGlobalThreatMapImage action failed: ${error.message}`);
+    } else {
+      console.error('generateGlobalThreatMapImage action failed with an unknown error.');
+    }
+    throw new Error('Failed to generate global threat map image. Please try again later.');
   }
 }
