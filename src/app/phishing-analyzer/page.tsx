@@ -15,25 +15,27 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { analyzePhishingAttempt } from '@/lib/actions';
 import type { AnalyzePhishingAttemptOutput, AnalyzePhishingAttemptInput } from '@/ai/flows/analyze-phishing-attempt';
-import { Loader2, ShieldAlert, ShieldCheck, AlertTriangle, Upload, Mic } from 'lucide-react';
+import { Loader2, ShieldAlert, ShieldCheck, AlertTriangle, Upload, Mic, FileText } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 
-const MAX_IMAGE_SIZE_MB = 5;
-const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
+const MAX_FILE_SIZE_MB = 5;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const ACCEPTED_TEXT_FILE_TYPES = ['text/plain', 'text/html', 'message/rfc822']; // .eml for message/rfc822
+const ALL_ACCEPTED_FILE_TYPES = [...ACCEPTED_IMAGE_TYPES, ...ACCEPTED_TEXT_FILE_TYPES];
 
 
 const formSchema = z.object({
-  content: z.string().min(10, { message: 'Text content must be at least 10 characters long if provided.' }).max(5000, {message: "Text content is too long."}).optional(),
-  imageFile: z.custom<File | undefined>((val) => typeof window === 'undefined' || val === undefined || val instanceof File, {
-    message: "Invalid image file.",
+  content: z.string().max(5000, {message: "Text content is too long (max 5000 characters)."}).optional(),
+  uploadedFile: z.custom<File | undefined>((val) => typeof window === 'undefined' || val === undefined || val instanceof File, {
+    message: "Invalid file.",
   })
-  .refine(file => file ? file.size <= MAX_IMAGE_SIZE_BYTES : true, `Image size should be less than ${MAX_IMAGE_SIZE_MB}MB.`)
-  .refine(file => file ? ACCEPTED_IMAGE_TYPES.includes(file.type) : true, "Unsupported image type. Please upload JPEG, PNG, GIF, or WEBP.")
+  .refine(file => file ? file.size <= MAX_FILE_SIZE_BYTES : true, `File size should be less than ${MAX_FILE_SIZE_MB}MB.`)
+  .refine(file => file ? ALL_ACCEPTED_FILE_TYPES.includes(file.type) : true, "Unsupported file type. Please upload an image (JPEG, PNG, GIF, WEBP) or a text-based file (TXT, HTML, EML).")
   .optional(),
-}).refine(data => data.content || data.imageFile, {
-  message: "Please provide text content (URL, email body) or upload an image to analyze.",
+}).refine(data => (data.content && data.content.trim().length >= 10) || data.uploadedFile, {
+  message: "Please provide text content (min 10 characters in textarea), or upload a file to analyze.",
   path: ["content"], 
 });
 
@@ -42,8 +44,8 @@ type FormData = z.infer<typeof formSchema>;
 export default function PhishingAnalyzerPage() {
   const [analysisResult, setAnalysisResult] = useState<AnalyzePhishingAttemptOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [errorState, setErrorState] = useState<string | null>(null); // error was renamed to errorState
-  const [uploadedImagePreview, setUploadedImagePreview] = useState<string | null>(null);
+  const [errorState, setErrorState] = useState<string | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null); // Renamed from uploadedImagePreview
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -51,69 +53,94 @@ export default function PhishingAnalyzerPage() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       content: '',
-      imageFile: undefined,
+      uploadedFile: undefined, // Renamed from imageFile
     },
   });
 
-  const { setValue, watch } = form;
-  const selectedImageFile = watch('imageFile');
+  const { setValue, watch, clearErrors: clearFormErrors, setError: setFormError } = form;
+  const selectedFile = watch('uploadedFile'); // Renamed from selectedImageFile
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-        form.setError("imageFile", { type: "type", message: "Unsupported image type. Please upload JPEG, PNG, GIF, or WEBP." });
-        setUploadedImagePreview(null);
-        setValue('imageFile', undefined);
+      if (!ALL_ACCEPTED_FILE_TYPES.includes(file.type)) {
+        setFormError("uploadedFile", { type: "type", message: "Unsupported file type. Please upload an image or a text-based file (TXT, HTML, EML)." });
+        setFilePreview(null);
+        setValue('uploadedFile', undefined);
         return;
       }
-      if (file.size > MAX_IMAGE_SIZE_BYTES) {
-        form.setError("imageFile", { type: "size", message: `Image size should be less than ${MAX_IMAGE_SIZE_MB}MB.` });
-        setUploadedImagePreview(null);
-        setValue('imageFile', undefined);
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        setFormError("uploadedFile", { type: "size", message: `File size should be less than ${MAX_FILE_SIZE_MB}MB.` });
+        setFilePreview(null);
+        setValue('uploadedFile', undefined);
         return;
       }
-      setValue('imageFile', file, { shouldValidate: true });
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setUploadedImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      form.clearErrors("imageFile");
+      setValue('uploadedFile', file, { shouldValidate: true });
+      
+      if (ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setFilePreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      } else if (ACCEPTED_TEXT_FILE_TYPES.includes(file.type)) {
+        setFilePreview(file.name); // Show filename as preview for text files
+      } else {
+        setFilePreview(null); // Should not happen due to earlier validation
+      }
+      clearFormErrors("uploadedFile");
     } else {
-      setValue('imageFile', undefined, { shouldValidate: true });
-      setUploadedImagePreview(null);
+      setValue('uploadedFile', undefined, { shouldValidate: true });
+      setFilePreview(null);
     }
   };
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     setIsLoading(true);
-    setErrorState(null); // error was renamed to errorState
+    setErrorState(null);
     setAnalysisResult(null);
-    form.clearErrors();
+    clearFormErrors();
 
     try {
-      const { content, imageFile } = data;
+      const { content: textContentFromForm, uploadedFile } = data;
+      let submissionContent = textContentFromForm || "";
       let submissionImageDataUri: string | undefined = undefined;
 
-      if (imageFile) {
-        submissionImageDataUri = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = (error) => reject(error);
-          reader.readAsDataURL(imageFile);
-        });
+      if (uploadedFile) {
+        if (ACCEPTED_IMAGE_TYPES.includes(uploadedFile.type)) {
+          submissionImageDataUri = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = (error) => reject(error);
+            reader.readAsDataURL(uploadedFile);
+          });
+        } else if (ACCEPTED_TEXT_FILE_TYPES.includes(uploadedFile.type)) {
+          const textFromFile = await uploadedFile.text();
+          if (submissionContent && textFromFile) {
+            submissionContent += `\n\n--- Uploaded File Content (${uploadedFile.name}) ---\n${textFromFile}`;
+          } else if (textFromFile) {
+            submissionContent = textFromFile;
+          }
+        }
       }
       
-      if (!content && !submissionImageDataUri) {
-        toast({ variant: "destructive", title: "Input Required", description: "Please provide text content or upload an image."});
+      // Final validation before sending to AI
+      if (!submissionImageDataUri && (!submissionContent || submissionContent.trim().length < 10)) {
+        setFormError("content", { type: "manual", message: "Text content (from textarea or file) must be at least 10 characters if no image is provided." });
+        toast({ variant: "destructive", title: "Input Required", description: "Text content (from textarea or file) must be at least 10 characters if no image is provided."});
+        setIsLoading(false);
+        return;
+      }
+       if (!submissionContent && !submissionImageDataUri) {
+         // This case should ideally be caught by formSchema.refine, but as a safeguard:
+        toast({ variant: "destructive", title: "Input Required", description: "Please provide text content or upload a file."});
         setIsLoading(false);
         return;
       }
 
 
       const aiInput: AnalyzePhishingAttemptInput = {
-        content: content || undefined,
+        content: submissionContent.trim() ? submissionContent.trim() : undefined,
         imageDataUri: submissionImageDataUri,
       };
 
@@ -121,7 +148,7 @@ export default function PhishingAnalyzerPage() {
       setAnalysisResult(result);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
-      setErrorState(errorMessage); // error was renamed to errorState
+      setErrorState(errorMessage);
       toast({ variant: "destructive", title: "Analysis Error", description: errorMessage });
     } finally {
       setIsLoading(false);
@@ -134,7 +161,7 @@ export default function PhishingAnalyzerPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><ShieldAlert />Advanced Input Analyzer</CardTitle>
           <CardDescription>
-            Submit URLs, text snippets, email content, or upload an image (e.g., screenshot of a suspicious message) for in-depth phishing analysis and educational feedback.
+            Submit URLs, text snippets, email content, or upload an image/text file (e.g., screenshot, .txt, .eml) for in-depth phishing analysis and educational feedback.
           </CardDescription>
         </CardHeader>
         <Form {...form}>
@@ -150,7 +177,7 @@ export default function PhishingAnalyzerPage() {
                       <FormControl>
                         <Textarea
                           id="content-input"
-                          placeholder="Paste URL, email body, or text snippet here..."
+                          placeholder="Paste URL, email body, or text snippet here... If uploading a text file, its content will be appended."
                           className="min-h-[120px] resize-y pr-10"
                           {...field}
                         />
@@ -172,31 +199,37 @@ export default function PhishingAnalyzerPage() {
               />
               <FormField
                 control={form.control}
-                name="imageFile"
-                render={({ field }) => ( // field is not directly used for input type="file" by RHF in the same way, but important for context
+                name="uploadedFile" // Renamed from imageFile
+                render={() => ( 
                   <FormItem>
-                    <FormLabel htmlFor="imageFile-input">Upload Image (Optional Screenshot)</FormLabel>
+                    <FormLabel htmlFor="uploadedFile-input">Upload File (Image or Text)</FormLabel>
                      <div className="flex items-center gap-2">
                       <FormControl>
                         <Input
-                          id="imageFile-input"
+                          id="uploadedFile-input"
                           type="file"
-                          accept={ACCEPTED_IMAGE_TYPES.join(',')}
+                          accept={ALL_ACCEPTED_FILE_TYPES.join(',')}
                           ref={fileInputRef}
-                          onChange={handleFileChange} // Use custom handler
+                          onChange={handleFileChange}
                           className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 flex-grow"
                         />
                       </FormControl>
-                      {/* Placeholder for potential future voice command for file upload if needed */}
                     </div>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              {uploadedImagePreview && (
+              {filePreview && selectedFile && ( // Check selectedFile to ensure preview corresponds to current file
                 <div className="mt-2">
-                  <p className="text-sm font-medium mb-1">Image Preview:</p>
-                  <Image src={uploadedImagePreview} alt="Uploaded preview" width={200} height={100} className="rounded-md border object-contain max-h-48" />
+                  <p className="text-sm font-medium mb-1">File Preview:</p>
+                  {ACCEPTED_IMAGE_TYPES.includes(selectedFile.type) ? (
+                    <Image src={filePreview} alt="Uploaded image preview" width={200} height={100} className="rounded-md border object-contain max-h-48" />
+                  ) : ACCEPTED_TEXT_FILE_TYPES.includes(selectedFile.type) ? (
+                    <div className="p-3 border rounded-md bg-muted text-sm flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-muted-foreground" /> 
+                      <span>{filePreview} ({(selectedFile.size / 1024).toFixed(2)} KB)</span>
+                    </div>
+                  ) : null}
                 </div>
               )}
             </CardContent>
@@ -216,7 +249,7 @@ export default function PhishingAnalyzerPage() {
         </Form>
       </Card>
 
-      {errorState && ( // error was renamed to errorState
+      {errorState && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Analysis Error</AlertTitle>
@@ -256,7 +289,7 @@ export default function PhishingAnalyzerPage() {
             </div>
             <div>
               <h3 className="font-semibold text-lg mb-1">Explanation & Recommendations:</h3>
-              <div className="p-3 rounded-md border bg-muted/30 text-sm max-h-96 overflow-y-auto"> {/* Increased max-h */}
+              <div className="p-3 rounded-md border bg-muted/30 text-sm max-h-96 overflow-y-auto">
                 <p className="whitespace-pre-wrap">{analysisResult.explanation}</p>
               </div>
             </div>
