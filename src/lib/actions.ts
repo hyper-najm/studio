@@ -26,6 +26,11 @@ import {
   type AnalyzeMalwareInput,
   type AnalyzeMalwareOutput,
 } from '@/ai/flows/analyze-malware';
+import {
+  analyzeSystemConfiguration as _analyzeSystemConfiguration,
+  type AnalyzeSystemConfigurationInput,
+  type AnalyzeSystemConfigurationOutput,
+} from '@/ai/flows/analyze-system-configuration';
 
 export async function analyzePhishingAttempt(input: AnalyzePhishingAttemptInput): Promise<AnalyzePhishingAttemptOutput> {
   try {
@@ -76,5 +81,20 @@ export async function analyzeMalware(input: AnalyzeMalwareInput): Promise<Analyz
         console.error('analyzeMalware action failed with an unknown error.');
     }
     throw new Error('Failed to analyze for malware. Please check the input and try again.');
+  }
+}
+
+export async function analyzeSystemConfiguration(input: AnalyzeSystemConfigurationInput): Promise<AnalyzeSystemConfigurationOutput> {
+  try {
+    return await _analyzeSystemConfiguration(input);
+  } catch (error)
+ {
+    console.error("Error in analyzeSystemConfiguration:", error);
+    if (error instanceof Error) {
+      console.error(`analyzeSystemConfiguration action failed: ${error.message}`);
+    } else {
+      console.error('analyzeSystemConfiguration action failed with an unknown error.');
+    }
+    throw new Error('Failed to analyze system configuration. Please check the input and try again.');
   }
 }
