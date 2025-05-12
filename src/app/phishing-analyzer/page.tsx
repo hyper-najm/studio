@@ -42,7 +42,7 @@ type FormData = z.infer<typeof formSchema>;
 export default function PhishingAnalyzerPage() {
   const [analysisResult, setAnalysisResult] = useState<AnalyzePhishingAttemptOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setErrorState] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null); // Corrected: state variable is `error`, setter is `setError`
   const [uploadedImagePreview, setUploadedImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -88,7 +88,7 @@ export default function PhishingAnalyzerPage() {
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     setIsLoading(true);
-    setErrorState(null);
+    setError(null);
     setAnalysisResult(null);
     form.clearErrors();
 
@@ -121,7 +121,7 @@ export default function PhishingAnalyzerPage() {
       setAnalysisResult(result);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
-      setErrorState(errorMessage);
+      setError(errorMessage);
       toast({ variant: "destructive", title: "Analysis Error", description: errorMessage });
     } finally {
       setIsLoading(false);
@@ -201,11 +201,11 @@ export default function PhishingAnalyzerPage() {
         </Form>
       </Card>
 
-      {errorState && (
+      {error && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Analysis Error</AlertTitle>
-          <AlertDescription>{errorState}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
