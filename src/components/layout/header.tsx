@@ -28,6 +28,8 @@ const getPageTitle = (pathname: string): string => {
       return 'Malware Detector';
     case '/system-analyzer':
       return 'System Analyzer';
+    case '/report-summarizer':
+      return 'Report Summarizer';
     case '/predictive-sentinel':
       return 'Predictive Sentinel';
     case '/autonomous-responder':
@@ -96,3 +98,4 @@ export function Header() {
     </header>
   );
 }
+

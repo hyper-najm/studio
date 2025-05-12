@@ -1,6 +1,10 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, TrendingUp, ListChecks, ShieldAlertIcon, AlertTriangle, History } from "lucide-react";
+import { AlertTriangle, History, ListChecks, ShieldAlertIcon, TrendingUp } from "lucide-react";
 import Image from "next/image";
+import { ActiveThreatsChart } from "@/components/dashboard/active-threats-chart";
+import { SecurityScoreDisplay } from "@/components/dashboard/security-score-display";
+import { ComplianceStatusChart } from "@/components/dashboard/compliance-status-chart";
 
 export default function DashboardPage() {
   return (
@@ -16,8 +20,8 @@ export default function DashboardPage() {
             <p className="text-xs text-muted-foreground">
               +2 from last hour
             </p>
-            <div className="mt-4 h-20 rounded-md bg-muted flex items-center justify-center text-sm text-muted-foreground" data-ai-hint="abstract data graph">
-              [Threat Trend Chart Placeholder]
+            <div className="mt-4 h-[120px]">
+              <ActiveThreatsChart />
             </div>
           </CardContent>
         </Card>
@@ -46,18 +50,15 @@ export default function DashboardPage() {
             <TrendingUp className="h-5 w-5 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-500">85%</div>
-            <p className="text-xs text-muted-foreground">
+            <SecurityScoreDisplay score={85} />
+            <p className="text-xs text-muted-foreground text-center">
               Improved by 5% this week
             </p>
-            <div className="mt-4 h-20 rounded-md bg-muted flex items-center justify-center text-sm text-muted-foreground" data-ai-hint="security progress chart">
-              [Security Score Trend Placeholder]
-            </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2"> {/* Changed to lg:grid-cols-2 for better layout with charts */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><History className="h-5 w-5"/>Recent Security Events</CardTitle>
@@ -86,30 +87,23 @@ export default function DashboardPage() {
                 </div>
                 <span className="text-xs text-muted-foreground">1 hour ago</span>
               </li>
+               <li className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors">
+                <div>
+                  <p className="font-medium">Firewall rule updated</p>
+                  <p className="text-xs text-muted-foreground">Rule ID: #FW-087 blocking port 8080</p>
+                </div>
+                <span className="text-xs text-muted-foreground">2 hours ago</span>
+              </li>
             </ul>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><ListChecks className="h-5 w-5"/>Compliance Status</CardTitle>
-            <CardDescription>Check your adherence to security standards.</CardDescription>
+            <CardDescription>Adherence to key security standards.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between">
-              <p>ISO 27001</p>
-              <span className="text-sm font-medium text-green-500">Compliant</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <p>SOC 2 Type II</p>
-              <span className="text-sm font-medium text-yellow-500">Pending Audit</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <p>GDPR</p>
-              <span className="text-sm font-medium text-green-500">Compliant</span>
-            </div>
-             <div className="mt-4 h-20 rounded-md bg-muted flex items-center justify-center text-sm text-muted-foreground" data-ai-hint="compliance donut chart">
-              [Compliance Overview Chart Placeholder]
-            </div>
+          <CardContent className="h-[240px] flex items-center justify-center"> {/* Adjusted height for chart */}
+            <ComplianceStatusChart />
           </CardContent>
         </Card>
       </div>
@@ -120,8 +114,9 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent>
           <div className="aspect-video w-full bg-muted rounded-md flex items-center justify-center text-muted-foreground">
-            [Interactive Map Placeholder - Showing global threats]
-            <Image src="https://picsum.photos/800/450" alt="Placeholder map" width={800} height={450} className="opacity-30 rounded-md" />
+            {/* [Interactive Map Placeholder - Showing global threats] */}
+            <Image src="https://picsum.photos/800/450" alt="Placeholder map of global threats" width={800} height={450} className="opacity-30 rounded-md object-cover" />
+             <span className="absolute text-center font-semibold">Interactive Global Threat Map (Coming Soon)</span>
           </div>
         </CardContent>
       </Card>

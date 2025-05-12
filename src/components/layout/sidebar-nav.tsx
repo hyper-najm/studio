@@ -16,7 +16,8 @@ import {
   Activity,
   ShieldAlert,
   ShieldX, 
-  ServerCog, // Added for System Analyzer
+  ServerCog, 
+  ScrollText, // Added for Report Summarizer
   LucideIcon,
 } from 'lucide-react';
 
@@ -32,6 +33,7 @@ const navItems: NavItem[] = [
   { href: '/knowledge-base', label: 'Knowledge Base', icon: BookText },
   { href: '/malware-detector', label: 'Malware Detector', icon: ShieldX },
   { href: '/system-analyzer', label: 'System Analyzer', icon: ServerCog },
+  { href: '/report-summarizer', label: 'Report Summarizer', icon: ScrollText },
   { href: '/predictive-sentinel', label: 'Predictive Sentinel', icon: Activity },
   { href: '/autonomous-responder', label: 'Autonomous Responder', icon: ShieldAlert },
 ];
@@ -66,3 +68,4 @@ export function SidebarNav() {
     </SidebarMenu>
   );
 }
+
