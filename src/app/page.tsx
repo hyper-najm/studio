@@ -11,6 +11,11 @@ import { ComplianceStatusChart } from "@/components/dashboard/compliance-status-
 import { generateGlobalThreatMapImage } from '@/lib/actions';
 import { formatDistanceToNow } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const sampleEventTemplates = [
   { title: (target?: string) => `Phishing attempt blocked: ${target || 'user@example.com'}`, source: (ip?: string) => `Source IP: ${ip || '198.51.100.12'}` },
@@ -156,9 +161,14 @@ export default function DashboardPage() {
     };
     fetchThreatMap();
 
-    // Shuffle and set insights on each mount/load
-    const shuffledInsights = shuffleArray(allPossibleInsights);
-    setGlobalThreatInsights(shuffledInsights.slice(0, NUMBER_OF_INSIGHTS_TO_DISPLAY));
+    setGlobalThreatInsights(shuffleArray(allPossibleInsights).slice(0, NUMBER_OF_INSIGHTS_TO_DISPLAY));
+    
+    // Interval to shuffle insights
+    const intervalId = setInterval(() => {
+      setGlobalThreatInsights(shuffleArray(allPossibleInsights).slice(0, NUMBER_OF_INSIGHTS_TO_DISPLAY));
+    }, 15000); // Shuffle every 15 seconds
+
+    return () => clearInterval(intervalId); // Cleanup interval on component unmount
 
   }, []);
 
@@ -236,7 +246,7 @@ export default function DashboardPage() {
             <CardTitle className="flex items-center gap-2"><History className="h-5 w-5"/>Recent Security Events</CardTitle>
             <CardDescription>Overview of the latest security-related activities.</CardDescription>
           </CardHeader>
-          <CardContent className="max-h-[280px] overflow-y-auto pr-1"> {/* Increased max-height */}
+          <CardContent className="max-h-[280px] overflow-y-auto pr-1">
             <ul className="space-y-3">
               {recentEvents.length > 0 ? recentEvents.map(event => (
                 <li key={event.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors">
@@ -255,7 +265,7 @@ export default function DashboardPage() {
             <CardTitle className="flex items-center gap-2"><ListChecks className="h-5 w-5"/>Compliance Status</CardTitle>
             <CardDescription>Adherence to key security standards.</CardDescription>
           </CardHeader>
-          <CardContent className="h-[280px] flex items-center justify-center"> {/* Increased height */}
+          <CardContent className="h-[280px] flex items-center justify-center">
             <ComplianceStatusChart />
           </CardContent>
         </Card>
@@ -263,37 +273,63 @@ export default function DashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Globe className="h-5 w-5" /> Global Threat Landscape</CardTitle>
-          <CardDescription>Visualizing threat origins and targets worldwide.</CardDescription>
+          <CardDescription>Visualizing threat origins and targets worldwide. Click map to enlarge.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="aspect-video w-full bg-muted rounded-md flex items-center justify-center text-muted-foreground relative overflow-hidden" data-ai-hint="cybersecurity global map">
-            {isThreatMapLoading && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/70 z-10">
-                <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-                <p className="text-lg font-semibold">Generating Threat Map...</p>
-                <p className="text-sm text-muted-foreground">This may take a few moments.</p>
+          <Dialog>
+            <DialogTrigger asChild disabled={!threatMapImageUrl || isThreatMapLoading || !!threatMapError}>
+              <div
+                className={`aspect-video w-full bg-muted rounded-md flex items-center justify-center text-muted-foreground relative overflow-hidden
+                            ${threatMapImageUrl && !isThreatMapLoading && !threatMapError ? 'cursor-zoom-in hover:shadow-lg transition-shadow' : 'cursor-default'}`}
+                role="button"
+                aria-label={threatMapImageUrl && !isThreatMapLoading && !threatMapError ? "View larger threat map" : "Threat map image"}
+                tabIndex={threatMapImageUrl && !isThreatMapLoading && !threatMapError ? 0 : -1}
+                data-ai-hint="cybersecurity global map"
+              >
+                {threatMapImageUrl && !isThreatMapLoading && !threatMapError ? (
+                  <Image
+                    src={threatMapImageUrl}
+                    alt="Global Threat Map Preview"
+                    layout="fill"
+                    objectFit="cover"
+                    className="rounded-md"
+                    priority 
+                  />
+                ) : isThreatMapLoading ? (
+                  <div className="flex flex-col items-center justify-center text-center p-4">
+                    <Loader2 className="h-12 w-12 animate-spin text-primary mb-3" />
+                    <p className="text-base font-semibold">Generating Map...</p>
+                    <p className="text-xs text-muted-foreground">Please wait.</p>
+                  </div>
+                ) : threatMapError ? (
+                  <div className="flex flex-col items-center justify-center text-center p-4">
+                    <AlertTriangle className="h-12 w-12 text-destructive mb-3" />
+                    <p className="text-base font-semibold text-destructive">Map Error</p>
+                    <p className="text-xs text-muted-foreground max-w-xs">{threatMapError}</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-center p-4">
+                    <Globe className="h-16 w-16 text-muted-foreground mb-3" />
+                    <p className="text-base font-semibold">Threat Map</p>
+                    <p className="text-xs text-muted-foreground">Visual will appear here.</p>
+                  </div>
+                )}
               </div>
-            )}
-            {threatMapError && !isThreatMapLoading && (
-               <Alert variant="destructive" className="w-full max-w-md">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Error Loading Threat Map</AlertTitle>
-                <AlertDescription>{threatMapError}</AlertDescription>
-              </Alert>
-            )}
-            {threatMapImageUrl && !isThreatMapLoading && !threatMapError && (
-              <Image 
-                src={threatMapImageUrl} 
-                alt="Global Threat Map" 
-                layout="fill" 
-                objectFit="cover" 
-                className="rounded-md"
-              />
-            )}
-             {!threatMapImageUrl && !isThreatMapLoading && !threatMapError && (
-                <p className="text-center">Threat map could not be displayed. Default visualization.</p>
-             )}
-          </div>
+            </DialogTrigger>
+            <DialogContent className="max-w-5xl w-[90vw] h-[85vh] p-2">
+              {threatMapImageUrl && (
+                <div className="w-full h-full relative">
+                  <Image
+                    src={threatMapImageUrl}
+                    alt="Global Threat Map - Enlarged View"
+                    layout="fill"
+                    objectFit="contain"
+                    className="rounded-md"
+                  />
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         </CardContent>
       </Card>
       {globalThreatInsights.length > 0 && (
