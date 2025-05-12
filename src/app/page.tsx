@@ -64,6 +64,34 @@ interface DashboardVulnerability {
   note?: string;
 }
 
+const allPossibleInsights = [
+  "Did you know? Phishing remains the most common initial attack vector for cyber breaches globally.",
+  "Geopolitical tensions often correlate with spikes in state-sponsored cyber activity targeting critical infrastructure in specific regions.",
+  "IoT devices are increasingly targeted due to often weak default security settings. Always change default credentials and update firmware!",
+  "Ransomware attacks are evolving, with attackers now frequently exfiltrating data before encryption (double extortion) and targeting backups.",
+  "The average time to identify and contain a data breach is over 200 days according to recent reports. Rapid detection and response are crucial.",
+  "Regularly updating software and operating systems patches known vulnerabilities, significantly reducing your attack surface.",
+  "Multi-Factor Authentication (MFA) adds a critical layer of security, making it much harder for attackers to compromise accounts even with stolen credentials.",
+  "Cybercriminals often exploit human psychology through social engineering. Always be skeptical of unsolicited communications asking for sensitive information or urging immediate action.",
+  "A robust data backup strategy, including offsite and offline copies, is essential for recovery from ransomware or other data loss events. Test your backups regularly!",
+  "Understanding common attack vectors like DDoS, SQL injection, and Cross-Site Scripting (XSS) can help in building more resilient systems and applications.",
+  "Zero Trust Architecture, which assumes no implicit trust regardless of location, is becoming a foundational security model for modern enterprises.",
+  "Threat intelligence feeds provide valuable, up-to-date information about emerging threats, vulnerabilities, and attacker tactics, techniques, and procedures (TTPs)."
+];
+
+// Simple shuffle function
+const shuffleArray = <T>(array: T[]): T[] => {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+};
+
+const NUMBER_OF_INSIGHTS_TO_DISPLAY = 3;
+
+
 export default function DashboardPage() {
   const [activeThreatsCount, setActiveThreatsCount] = useState(0);
   const [threatChange, setThreatChange] = useState(0);
@@ -128,13 +156,10 @@ export default function DashboardPage() {
     };
     fetchThreatMap();
 
-    setGlobalThreatInsights([
-      "Did you know? Phishing remains the most common initial attack vector for cyber breaches globally.",
-      "Geopolitical tensions often correlate with spikes in state-sponsored cyber activity targeting critical infrastructure in specific regions.",
-      "IoT devices are increasingly targeted due to often weak default security settings. Always change default credentials and update firmware!",
-      "Ransomware attacks are evolving, with attackers now frequently exfiltrating data before encryption (double extortion) and targeting backups.",
-      "The average time to identify and contain a data breach is over 200 days. Rapid detection and response are crucial."
-    ]);
+    // Shuffle and set insights on each mount/load
+    const shuffledInsights = shuffleArray(allPossibleInsights);
+    setGlobalThreatInsights(shuffledInsights.slice(0, NUMBER_OF_INSIGHTS_TO_DISPLAY));
+
   }, []);
 
   const getSeverityClass = (severity: DashboardVulnerability['severity']) => {
