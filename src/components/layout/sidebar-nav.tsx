@@ -17,7 +17,8 @@ import {
   ShieldAlert,
   ShieldX, 
   ServerCog, 
-  ScrollText, // Added for Report Summarizer
+  ScrollText,
+  Settings, // Added Settings icon
   LucideIcon,
 } from 'lucide-react';
 
@@ -25,9 +26,10 @@ interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
+  bottom?: boolean; // Optional flag for items at the bottom
 }
 
-const navItems: NavItem[] = [
+const mainNavItems: NavItem[] = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/phishing-analyzer', label: 'Phishing Analyzer', icon: ShieldCheck },
   { href: '/knowledge-base', label: 'Knowledge Base', icon: BookText },
@@ -38,34 +40,46 @@ const navItems: NavItem[] = [
   { href: '/autonomous-responder', label: 'Autonomous Responder', icon: ShieldAlert },
 ];
 
+const utilityNavItems: NavItem[] = [
+  { href: '/settings', label: 'Settings', icon: Settings, bottom: true },
+];
+
 export function SidebarNav() {
   const pathname = usePathname();
 
+  const renderNavItem = (item: NavItem) => (
+    <SidebarMenuItem key={item.href}>
+      <Link href={item.href} passHref legacyBehavior>
+        <SidebarMenuButton
+          asChild
+          isActive={pathname === item.href}
+          className={cn(
+            'justify-start',
+            pathname === item.href
+              ? 'bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90'
+              : 'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+          )}
+          tooltip={item.label}
+        >
+          <a>
+            <item.icon className="h-5 w-5" />
+            <span>{item.label}</span>
+          </a>
+        </SidebarMenuButton>
+      </Link>
+    </SidebarMenuItem>
+  );
+
   return (
-    <SidebarMenu>
-      {navItems.map((item) => (
-        <SidebarMenuItem key={item.href}>
-          <Link href={item.href} passHref legacyBehavior>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname === item.href}
-              className={cn(
-                'justify-start',
-                pathname === item.href
-                  ? 'bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90'
-                  : 'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-              )}
-              tooltip={item.label}
-            >
-              <a>
-                <item.icon className="h-5 w-5" />
-                <span>{item.label}</span>
-              </a>
-            </SidebarMenuButton>
-          </Link>
-        </SidebarMenuItem>
-      ))}
-    </SidebarMenu>
+    <div className="flex flex-col h-full">
+      <SidebarMenu className="flex-grow">
+        {mainNavItems.map(renderNavItem)}
+      </SidebarMenu>
+      <SidebarMenu className="mt-auto border-t border-sidebar-border pt-2">
+        {utilityNavItems.map(renderNavItem)}
+      </SidebarMenu>
+    </div>
   );
 }
 
+    

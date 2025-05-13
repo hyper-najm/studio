@@ -1,11 +1,10 @@
+
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
-import { SidebarProvider, Sidebar, SidebarInset, SidebarHeader, SidebarTrigger, SidebarContent, SidebarFooter } from '@/components/ui/sidebar';
-import { SidebarNav } from '@/components/layout/sidebar-nav';
-import { Header } from '@/components/layout/header';
 import { Toaster } from "@/components/ui/toaster";
-import { ShieldHalf } from 'lucide-react';
+import { MainLayout } from '@/components/layout/main-layout';
+
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -22,6 +21,7 @@ export const metadata: Metadata = {
   description: 'Enhanced Cybersecurity & Threat Intelligence Platform',
 };
 
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -29,29 +29,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <SidebarProvider defaultOpen>
-          <Sidebar className="border-r border-sidebar-border">
-            <SidebarHeader className="p-4">
-              <div className="flex items-center gap-2">
-                <ShieldHalf className="h-8 w-8 text-primary" />
-                <h1 className="text-xl font-semibold text-primary">CyberGuardian Pro</h1>
-              </div>
-            </SidebarHeader>
-            <SidebarContent>
-              <SidebarNav />
-            </SidebarContent>
-            <SidebarFooter className="p-2">
-              {/* Optional: Add footer content like version or logout */}
-            </SidebarFooter>
-          </Sidebar>
-          <SidebarInset>
-            <Header />
-            <main className="flex-1 p-6 overflow-auto">
-              {children}
-            </main>
-          </SidebarInset>
-        </SidebarProvider>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}>
+        <MainLayout>{children}</MainLayout>
         <Toaster />
       </body>
     </html>

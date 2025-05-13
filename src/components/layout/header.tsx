@@ -3,8 +3,9 @@
 
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { UserCircle, Bell, Globe, Mic } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+import { UserCircle, Bell, Globe, Mic, Settings, LogOut } from 'lucide-react'; // Added Settings, LogOut
+import { usePathname, useRouter } from 'next/navigation'; // Added useRouter
+import Link from 'next/link'; // Added Link
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +35,10 @@ const getPageTitle = (pathname: string): string => {
       return 'Predictive Sentinel';
     case '/autonomous-responder':
       return 'Autonomous Responder';
+    case '/settings':
+      return 'Settings';
+    case '/login':
+      return 'Login';
     default:
       return 'CyberGuardian Pro';
   }
@@ -43,6 +48,19 @@ export function Header() {
   const pathname = usePathname();
   const pageTitle = getPageTitle(pathname);
   const { toast } = useToast();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    toast({
+      title: "Logout",
+      description: "Logout functionality coming soon. Redirecting to login page (placeholder).",
+    });
+    // Simulate redirect after "logout"
+    setTimeout(() => {
+      router.push('/login');
+    }, 1500);
+  };
+
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-6 backdrop-blur-md">
@@ -75,7 +93,7 @@ export function Header() {
           <Mic className="h-5 w-5" />
         </Button>
 
-        <Button variant="ghost" size="icon" aria-label="Notifications">
+        <Button variant="ghost" size="icon" aria-label="Notifications" onClick={() => toast({ title: "Notifications", description: "No new notifications."})}>
           <Bell className="h-5 w-5" />
         </Button>
         
@@ -88,10 +106,21 @@ export function Header() {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/settings">
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Settings</span>
+              </Link>
+            </DropdownMenuItem>
+             <DropdownMenuItem onClick={() => toast({ title: "Profile", description: "Profile page coming soon. Access settings for now."})}>
+                <UserCircle className="mr-2 h-4 w-4" />
+                <span>Profile (Soon)</span>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Logout</DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Logout</span>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -99,3 +128,4 @@ export function Header() {
   );
 }
 
+    
