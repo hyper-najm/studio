@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,10 +15,36 @@ import { useToast } from "@/hooks/use-toast";
 export default function SettingsPage() {
   const { toast } = useToast();
 
+  // Profile State
+  const [profileName, setProfileName] = useState("Cyber Guardian User");
+  const [profileEmail, setProfileEmail] = useState("user@cyberguardian.pro");
+
+  // Security State
+  const [is2FAEnabled, setIs2FAEnabled] = useState(false);
+
+  // Notifications State
+  const [emailCriticalAlerts, setEmailCriticalAlerts] = useState(true);
+  const [inAppSystemUpdates, setInAppSystemUpdates] = useState(true);
+
   const handleSaveChanges = (section: string) => {
+    let description = "Settings saved (placeholder).";
+    switch (section) {
+      case "Profile":
+        description = `Profile updated: Name - ${profileName}, Email - ${profileEmail}. (Placeholder)`;
+        break;
+      case "Security":
+        description = `Security settings updated: 2FA is ${is2FAEnabled ? 'enabled' : 'disabled'}. (Placeholder)`;
+        break;
+      case "Notification":
+        description = `Notification settings updated: Critical Email Alerts ${emailCriticalAlerts ? 'On' : 'Off'}, In-App System Updates ${inAppSystemUpdates ? 'On' : 'Off'}. (Placeholder)`;
+        break;
+      case "Appearance":
+        description = "Appearance settings are currently default. More options coming soon. (Placeholder)";
+        break;
+    }
     toast({
       title: `${section} Settings`,
-      description: "Save functionality is a placeholder. Settings are not persisted yet.",
+      description: description,
     });
   };
 
@@ -46,11 +73,11 @@ export default function SettingsPage() {
                 <CardContent className="space-y-4">
                   <div className="space-y-1">
                     <Label htmlFor="name">Full Name</Label>
-                    <Input id="name" defaultValue="Cyber Guardian User" />
+                    <Input id="name" value={profileName} onChange={(e) => setProfileName(e.target.value)} />
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="email">Email Address</Label>
-                    <Input id="email" type="email" defaultValue="user@cyberguardian.pro" />
+                    <Input id="email" type="email" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} />
                   </div>
                 </CardContent>
                 <CardFooter>
@@ -76,7 +103,11 @@ export default function SettingsPage() {
                         Enhance your account security by enabling 2FA.
                       </p>
                     </div>
-                    <Switch id="2fa" onCheckedChange={(checked) => toast({title: "2FA Setting", description: `2FA ${checked ? 'enabled' : 'disabled'} (placeholder).`})} />
+                    <Switch 
+                      id="2fa" 
+                      checked={is2FAEnabled}
+                      onCheckedChange={setIs2FAEnabled} 
+                    />
                   </div>
                 </CardContent>
                  <CardFooter>
@@ -96,11 +127,19 @@ export default function SettingsPage() {
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between rounded-lg border p-4">
                     <Label htmlFor="email-notifications" className="flex-grow">Email Notifications for Critical Alerts</Label>
-                    <Switch id="email-notifications" defaultChecked onCheckedChange={(checked) => toast({title: "Email Notifications", description: `Critical alerts by email ${checked ? 'enabled' : 'disabled'} (placeholder).`})} />
+                    <Switch 
+                      id="email-notifications" 
+                      checked={emailCriticalAlerts}
+                      onCheckedChange={setEmailCriticalAlerts}
+                    />
                   </div>
                   <div className="flex items-center justify-between rounded-lg border p-4">
                     <Label htmlFor="inapp-notifications" className="flex-grow">In-App Notifications for System Updates</Label>
-                    <Switch id="inapp-notifications" defaultChecked onCheckedChange={(checked) => toast({title: "In-App Notifications", description: `System updates by in-app notification ${checked ? 'enabled' : 'disabled'} (placeholder).`})} />
+                    <Switch 
+                      id="inapp-notifications" 
+                      checked={inAppSystemUpdates}
+                      onCheckedChange={setInAppSystemUpdates}
+                    />
                   </div>
                 </CardContent>
                  <CardFooter>
@@ -120,7 +159,11 @@ export default function SettingsPage() {
                 <CardContent className="space-y-4">
                    <div className="flex items-center justify-between rounded-lg border p-4">
                     <Label htmlFor="dark-mode" className="flex-grow">Dark Mode</Label>
-                    <Switch id="dark-mode" defaultChecked disabled aria-readonly // Assuming dark mode is default and not changeable here
+                    <Switch 
+                      id="dark-mode" 
+                      checked={true} // Assuming dark mode is default and controlled elsewhere or fixed
+                      disabled 
+                      aria-readonly 
                       onCheckedChange={() => toast({title: "Dark Mode", description: "Dark Mode is currently enabled by default."})}
                     />
                   </div>
@@ -129,7 +172,9 @@ export default function SettingsPage() {
                   </p>
                 </CardContent>
                  <CardFooter>
-                   {/* No save button for appearance if it's not yet configurable */}
+                  <Button onClick={() => handleSaveChanges("Appearance")}>
+                    <Save className="mr-2 h-4 w-4" />Save Appearance Settings
+                  </Button>
                 </CardFooter>
               </Card>
             </TabsContent>
@@ -139,5 +184,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
