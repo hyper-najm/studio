@@ -1,59 +1,139 @@
 
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Shield, Bell, Palette, Save } from "lucide-react";
+import { User, Shield, Bell, Palette, Save, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getUserSettings, saveUserSettings, type UserSettings } from "@/services/settingsService";
+
+const defaultSettings: UserSettings = {
+  profileName: "Cyber Guardian User",
+  profileEmail: "user@cyberguardian.pro",
+  is2FAEnabled: false,
+  emailCriticalAlerts: true,
+  inAppSystemUpdates: true,
+};
 
 export default function SettingsPage() {
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Profile State
-  const [profileName, setProfileName] = useState("Cyber Guardian User");
-  const [profileEmail, setProfileEmail] = useState("user@cyberguardian.pro");
+  const [profileName, setProfileName] = useState(defaultSettings.profileName);
+  const [profileEmail, setProfileEmail] = useState(defaultSettings.profileEmail);
 
   // Security State
-  const [is2FAEnabled, setIs2FAEnabled] = useState(false);
+  const [is2FAEnabled, setIs2FAEnabled] = useState(defaultSettings.is2FAEnabled);
 
   // Notifications State
-  const [emailCriticalAlerts, setEmailCriticalAlerts] = useState(true);
-  const [inAppSystemUpdates, setInAppSystemUpdates] = useState(true);
+  const [emailCriticalAlerts, setEmailCriticalAlerts] = useState(defaultSettings.emailCriticalAlerts);
+  const [inAppSystemUpdates, setInAppSystemUpdates] = useState(defaultSettings.inAppSystemUpdates);
 
-  const handleSaveChanges = (section: string) => {
-    let description = "Settings saved (placeholder).";
+  useEffect(() => {
+    async function loadSettings() {
+      setIsLoading(true);
+      try {
+        const settings = await getUserSettings();
+        if (settings) {
+          setProfileName(settings.profileName);
+          setProfileEmail(settings.profileEmail);
+          setIs2FAEnabled(settings.is2FAEnabled);
+          setEmailCriticalAlerts(settings.emailCriticalAlerts);
+          setInAppSystemUpdates(settings.inAppSystemUpdates);
+        } else {
+          // Set to defaults if no settings found in DB (first time user)
+          setProfileName(defaultSettings.profileName);
+          setProfileEmail(defaultSettings.profileEmail);
+          setIs2FAEnabled(defaultSettings.is2FAEnabled);
+          setEmailCriticalAlerts(defaultSettings.emailCriticalAlerts);
+          setInAppSystemUpdates(defaultSettings.inAppSystemUpdates);
+          toast({ title: "Default Settings Loaded", description: "No existing settings found, using defaults." });
+        }
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Error Loading Settings",
+          description: error instanceof Error ? error.message : "Could not load settings from database.",
+        });
+        // Fallback to default settings on error
+        setProfileName(defaultSettings.profileName);
+        setProfileEmail(defaultSettings.profileEmail);
+        setIs2FAEnabled(defaultSettings.is2FAEnabled);
+        setEmailCriticalAlerts(defaultSettings.emailCriticalAlerts);
+        setInAppSystemUpdates(defaultSettings.inAppSystemUpdates);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadSettings();
+  }, [toast]);
+
+  const handleSaveChanges = async (section: string) => {
+    setIsSaving(true);
+    let settingsToSave: Partial<UserSettings> = {};
+    let successMessage = "Settings saved successfully!";
+
     switch (section) {
       case "Profile":
-        description = `Profile updated: Name - ${profileName}, Email - ${profileEmail}. (Placeholder)`;
+        settingsToSave = { profileName, profileEmail };
+        successMessage = `Profile updated successfully.`;
         break;
       case "Security":
-        description = `Security settings updated: 2FA is ${is2FAEnabled ? 'enabled' : 'disabled'}. (Placeholder)`;
+        settingsToSave = { is2FAEnabled };
+        successMessage = `Security settings updated: 2FA is ${is2FAEnabled ? 'enabled' : 'disabled'}.`;
         break;
       case "Notification":
-        description = `Notification settings updated: Critical Email Alerts ${emailCriticalAlerts ? 'On' : 'Off'}, In-App System Updates ${inAppSystemUpdates ? 'On' : 'Off'}. (Placeholder)`;
+        settingsToSave = { emailCriticalAlerts, inAppSystemUpdates };
+        successMessage = `Notification settings updated.`;
         break;
       case "Appearance":
-        description = "Appearance settings are currently default. More options coming soon. (Placeholder)";
-        break;
+         toast({ title: "Appearance Settings", description: "Appearance settings are currently default. More options coming soon." });
+         setIsSaving(false);
+        return; // No save operation for appearance yet
+      default:
+        setIsSaving(false);
+        return;
     }
-    toast({
-      title: `${section} Settings`,
-      description: description,
-    });
+
+    try {
+      await saveUserSettings(settingsToSave);
+      toast({
+        title: `${section} Settings Saved`,
+        description: successMessage,
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: `Error Saving ${section} Settings`,
+        description: error instanceof Error ? error.message : "Could not save settings to database.",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="ml-4 text-lg">Loading settings...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">Settings</CardTitle>
-          <CardDescription>Manage your account settings and preferences.</CardDescription>
+          <CardDescription>Manage your account settings and preferences. Remember to configure Firestore security rules for a production app.</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="profile" className="space-y-4">
@@ -73,16 +153,17 @@ export default function SettingsPage() {
                 <CardContent className="space-y-4">
                   <div className="space-y-1">
                     <Label htmlFor="name">Full Name</Label>
-                    <Input id="name" value={profileName} onChange={(e) => setProfileName(e.target.value)} />
+                    <Input id="name" value={profileName} onChange={(e) => setProfileName(e.target.value)} disabled={isSaving} />
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="email">Email Address</Label>
-                    <Input id="email" type="email" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} />
+                    <Input id="email" type="email" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} disabled={isSaving} />
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button onClick={() => handleSaveChanges("Profile")}>
-                    <Save className="mr-2 h-4 w-4" />Save Profile Changes
+                  <Button onClick={() => handleSaveChanges("Profile")} disabled={isSaving}>
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Save Profile Changes
                   </Button>
                 </CardFooter>
               </Card>
@@ -95,7 +176,7 @@ export default function SettingsPage() {
                   <CardDescription>Manage your account security.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Button variant="outline" onClick={() => toast({title: "Change Password", description: "Feature coming soon."})}>Change Password</Button>
+                  <Button variant="outline" onClick={() => toast({title: "Change Password", description: "Password change functionality coming soon."})} disabled={isSaving}>Change Password</Button>
                   <div className="flex items-center justify-between rounded-lg border p-4">
                     <div>
                       <Label htmlFor="2fa" className="font-semibold">Two-Factor Authentication (2FA)</Label>
@@ -106,13 +187,15 @@ export default function SettingsPage() {
                     <Switch 
                       id="2fa" 
                       checked={is2FAEnabled}
-                      onCheckedChange={setIs2FAEnabled} 
+                      onCheckedChange={setIs2FAEnabled}
+                      disabled={isSaving} 
                     />
                   </div>
                 </CardContent>
                  <CardFooter>
-                  <Button onClick={() => handleSaveChanges("Security")}>
-                     <Save className="mr-2 h-4 w-4" />Save Security Settings
+                  <Button onClick={() => handleSaveChanges("Security")} disabled={isSaving}>
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Save Security Settings
                   </Button>
                 </CardFooter>
               </Card>
@@ -131,6 +214,7 @@ export default function SettingsPage() {
                       id="email-notifications" 
                       checked={emailCriticalAlerts}
                       onCheckedChange={setEmailCriticalAlerts}
+                      disabled={isSaving}
                     />
                   </div>
                   <div className="flex items-center justify-between rounded-lg border p-4">
@@ -139,12 +223,14 @@ export default function SettingsPage() {
                       id="inapp-notifications" 
                       checked={inAppSystemUpdates}
                       onCheckedChange={setInAppSystemUpdates}
+                      disabled={isSaving}
                     />
                   </div>
                 </CardContent>
                  <CardFooter>
-                  <Button onClick={() => handleSaveChanges("Notification")}>
-                    <Save className="mr-2 h-4 w-4" />Save Notification Settings
+                  <Button onClick={() => handleSaveChanges("Notification")} disabled={isSaving}>
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Save Notification Settings
                   </Button>
                 </CardFooter>
               </Card>
@@ -161,7 +247,7 @@ export default function SettingsPage() {
                     <Label htmlFor="dark-mode" className="flex-grow">Dark Mode</Label>
                     <Switch 
                       id="dark-mode" 
-                      checked={true} // Assuming dark mode is default and controlled elsewhere or fixed
+                      checked={true} 
                       disabled 
                       aria-readonly 
                       onCheckedChange={() => toast({title: "Dark Mode", description: "Dark Mode is currently enabled by default."})}
@@ -172,8 +258,9 @@ export default function SettingsPage() {
                   </p>
                 </CardContent>
                  <CardFooter>
-                  <Button onClick={() => handleSaveChanges("Appearance")}>
-                    <Save className="mr-2 h-4 w-4" />Save Appearance Settings
+                  <Button onClick={() => handleSaveChanges("Appearance")} disabled={isSaving}>
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Save Appearance Settings
                   </Button>
                 </CardFooter>
               </Card>
