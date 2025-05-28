@@ -37,7 +37,7 @@ const generateGlobalThreatMapImageFlow = ai.defineFlow(
   async () => { // Input parameter removed as it's not used for this basic version
     const {media} = await ai.generate({
       model: 'googleai/gemini-2.0-flash-exp', // IMPORTANT: Use this model for image generation
-      prompt: `Generate a visually appealing, dark-themed, high-resolution world map for a cybersecurity dashboard. The map should clearly display global cyber threat activity with educational annotations. Highlight major cybersecurity hubs and regions known for prevalent threat types using intuitive symbols or color-coding. The style should be futuristic and professional, suitable for a dashboard. Annotate key regions with brief, informative labels about prevalent threats (e.g., 'East Asia - Advanced Persistent Threats', 'Eastern Europe - Ransomware'). The map needs to be engaging and convey the dynamic nature of global cyber threats, serving as both an overview and educational tool. Ensure high resolution for clarity on dashboards and when enlarged.`,
+      prompt: `Generate a dark-themed, futuristic, high-resolution world map visualizing global cyber threats. Suitable for a cybersecurity dashboard.`, // Further simplified prompt
       config: {
         responseModalities: ['TEXT', 'IMAGE'], // MUST provide both TEXT and IMAGE
         safetySettings: [
