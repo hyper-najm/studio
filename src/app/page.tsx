@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertTriangle, History, ListChecks, ShieldAlertIcon, TrendingUp, Loader2, Globe, Lightbulb, ChevronLeft, ChevronRight } from "lucide-react";
+import { AlertTriangle, History, ListChecks, ShieldAlertIcon, TrendingUp, Globe, Lightbulb, ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { ActiveThreatsChart } from "@/components/dashboard/active-threats-chart";
 import { SecurityScoreDisplay } from "@/components/dashboard/security-score-display";
@@ -96,10 +96,10 @@ const shuffleArray = <T>(array: T[]): T[] => {
 const NUMBER_OF_INSIGHTS_TO_DISPLAY = 3;
 
 const landscapeImages = [
-  { src: 'https://picsum.photos/800/450?random=1', alt: 'Cybersecurity threat map - Abstract network visualization', hint: 'network abstract' },
-  { src: 'https://picsum.photos/800/450?random=2', alt: 'Global connections and data flows', hint: 'global connections' },
-  { src: 'https://picsum.photos/800/450?random=3', alt: 'Digital world with highlighted threat vectors', hint: 'digital world' },
-  { src: 'https://picsum.photos/800/450?random=4', alt: 'Futuristic city with cyber defense overlay', hint: 'futuristic city' },
+  { src: 'https://picsum.photos/800/450?random=1', alt: 'Abstract visualization of network traffic and cyber threats', 'data-ai-hint': 'cyber security' },
+  { src: 'https://picsum.photos/800/450?random=2', alt: 'Conceptual global data connections with highlighted risk areas', 'data-ai-hint': 'global network' },
+  { src: 'https://picsum.photos/800/450?random=3', alt: 'Digital representation of a world map showing cyber attack vectors', 'data-ai-hint': 'world map' },
+  { src: 'https://picsum.photos/800/450?random=4', alt: 'Futuristic interface displaying cybersecurity defense systems', 'data-ai-hint': 'security interface' },
 ];
 
 export default function DashboardPage() {
@@ -153,19 +153,19 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    generateRandomData(); // Initial data load
+    generateRandomData(); 
     
     const insightsIntervalId = setInterval(() => {
        setGlobalThreatInsights(shuffleArray(allPossibleInsights).slice(0, NUMBER_OF_INSIGHTS_TO_DISPLAY));
-    }, 7000); // Change insights every 7 seconds for more dynamism
+    }, 7000); 
 
     const slideshowIntervalId = setInterval(() => {
       setCurrentLandscapeIndex(prevIndex => (prevIndex + 1) % landscapeImages.length);
-    }, 5000); // Change image every 5 seconds
+    }, 5000); 
 
     const dataRefreshIntervalId = setInterval(() => {
-      generateRandomData(); // Refresh all dashboard data periodically
-    }, 30000); // Refresh data every 30 seconds
+      generateRandomData(); 
+    }, 30000); 
 
 
     return () => {
@@ -286,7 +286,7 @@ export default function DashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Globe className="h-5 w-5" /> Global Landscape Slideshow</CardTitle>
-          <CardDescription>A slideshow visualizing different aspects of the global cyber landscape. Click an image to enlarge.</CardDescription>
+          <CardDescription>Illustrative slideshow visualizing different conceptual aspects of the global cyber threat landscape. These are representations, not live data. Click an image to enlarge.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="relative group">
@@ -297,7 +297,7 @@ export default function DashboardPage() {
                   role="button"
                   aria-label="View larger landscape image"
                   tabIndex={0}
-                  data-ai-hint={landscapeImages[currentLandscapeIndex].hint}
+                  data-ai-hint={landscapeImages[currentLandscapeIndex]['data-ai-hint']}
                 >
                   <Image
                     key={landscapeImages[currentLandscapeIndex].src} 
