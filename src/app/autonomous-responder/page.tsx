@@ -21,7 +21,7 @@ export default function AutonomousResponderPage() {
             We are developing an AI that not only responds to threats but also anticipates them, providing a truly proactive defense layer that educates as it protects. Stay tuned for a smarter, autonomous security future!
           </p>
           <div className="mt-8 w-full max-w-lg aspect-video bg-muted rounded-lg shadow-md" data-ai-hint="futuristic security operations">
-            <Image src="https://picsum.photos/600/338" alt="Autonomous Response System Concept Art" width={600} height={338} className="rounded-lg object-cover" />
+            <Image src="https://placehold.co/600x338.png" alt="Autonomous Response System Concept Art" width={600} height={338} className="rounded-lg object-cover" />
           </div>
         </CardContent>
       </Card>
