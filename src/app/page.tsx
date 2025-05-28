@@ -15,7 +15,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { cn } from '@/lib/utils'; // Added this import
+import { cn } from '@/lib/utils';
 
 const sampleEventTemplates = [
   { title: (target?: string) => `Phishing attempt blocked: ${target || 'user@example.com'}`, source: (ip?: string) => `Source IP: ${ip || '198.51.100.12'}` },
@@ -96,10 +96,10 @@ const shuffleArray = <T>(array: T[]): T[] => {
 const NUMBER_OF_INSIGHTS_TO_DISPLAY = 3;
 
 const landscapeImages = [
-  { src: 'https://placehold.co/800x450.png', alt: 'Cybersecurity threat map - Abstract network visualization', hint: 'network abstract' },
-  { src: 'https://placehold.co/800x450.png', alt: 'Global connections and data flows', hint: 'global connections' },
-  { src: 'https://placehold.co/800x450.png', alt: 'Digital world with highlighted threat vectors', hint: 'digital world' },
-  { src: 'https://placehold.co/800x450.png', alt: 'Futuristic city with cyber defense overlay', hint: 'futuristic city' },
+  { src: 'https://picsum.photos/800/450?random=1', alt: 'Cybersecurity threat map - Abstract network visualization', hint: 'network abstract' },
+  { src: 'https://picsum.photos/800/450?random=2', alt: 'Global connections and data flows', hint: 'global connections' },
+  { src: 'https://picsum.photos/800/450?random=3', alt: 'Digital world with highlighted threat vectors', hint: 'digital world' },
+  { src: 'https://picsum.photos/800/450?random=4', alt: 'Futuristic city with cyber defense overlay', hint: 'futuristic city' },
 ];
 
 export default function DashboardPage() {
@@ -113,7 +113,7 @@ export default function DashboardPage() {
   const [globalThreatInsights, setGlobalThreatInsights] = useState<string[]>([]);
   const [currentLandscapeIndex, setCurrentLandscapeIndex] = useState(0);
 
-  useEffect(() => {
+  const generateRandomData = useCallback(() => {
     setActiveThreatsCount(Math.floor(Math.random() * 25) + 8); 
     setThreatChange(Math.floor(Math.random() * 11) - 5); 
 
@@ -150,21 +150,32 @@ export default function DashboardPage() {
     setRecentEvents(generatedEvents.sort((a,b) => b.timestamp.getTime() - a.timestamp.getTime()));
     
     setGlobalThreatInsights(shuffleArray(allPossibleInsights).slice(0, NUMBER_OF_INSIGHTS_TO_DISPLAY));
+  }, []);
+
+  useEffect(() => {
+    generateRandomData(); // Initial data load
     
     const insightsIntervalId = setInterval(() => {
-      setGlobalThreatInsights(shuffleArray(allPossibleInsights).slice(0, NUMBER_OF_INSIGHTS_TO_DISPLAY));
-    }, 15000); 
+       setGlobalThreatInsights(shuffleArray(allPossibleInsights).slice(0, NUMBER_OF_INSIGHTS_TO_DISPLAY));
+    }, 7000); // Change insights every 7 seconds for more dynamism
 
     const slideshowIntervalId = setInterval(() => {
       setCurrentLandscapeIndex(prevIndex => (prevIndex + 1) % landscapeImages.length);
     }, 5000); // Change image every 5 seconds
 
+    const dataRefreshIntervalId = setInterval(() => {
+      generateRandomData(); // Refresh all dashboard data periodically
+    }, 30000); // Refresh data every 30 seconds
+
+
     return () => {
       clearInterval(insightsIntervalId);
       clearInterval(slideshowIntervalId);
+      clearInterval(dataRefreshIntervalId);
     };
 
-  }, []);
+  }, [generateRandomData]);
+
 
   const handlePreviousImage = useCallback(() => {
     setCurrentLandscapeIndex(prevIndex => (prevIndex - 1 + landscapeImages.length) % landscapeImages.length);
@@ -289,12 +300,12 @@ export default function DashboardPage() {
                   data-ai-hint={landscapeImages[currentLandscapeIndex].hint}
                 >
                   <Image
-                    key={landscapeImages[currentLandscapeIndex].src} // Add key for smooth transition
+                    key={landscapeImages[currentLandscapeIndex].src} 
                     src={landscapeImages[currentLandscapeIndex].src}
                     alt={landscapeImages[currentLandscapeIndex].alt}
                     layout="fill"
                     objectFit="cover"
-                    className="rounded-md animate-fade-in" // Simple fade-in animation
+                    className="rounded-md animate-fade-in" 
                   />
                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                      <span className="text-white text-lg font-semibold">View Larger</span>
