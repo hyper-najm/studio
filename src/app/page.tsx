@@ -102,7 +102,7 @@ const landscapeImages = [
   { src: 'https://picsum.photos/seed/cyber4/800/450', alt: 'Futuristic command center interface displaying threat analytics', 'data-ai-hint': 'threat analytics' },
 ];
 
-const SLIDESHOW_INTERVAL_MS = 5000;
+const SLIDESHOW_INTERVAL_MS = 60000; // Updated to 1 minute
 
 export default function DashboardPage() {
   const [activeThreatsCount, setActiveThreatsCount] = useState(0);
@@ -320,8 +320,8 @@ export default function DashboardPage() {
                     key={landscapeImages[currentLandscapeIndex].src} 
                     src={landscapeImages[currentLandscapeIndex].src}
                     alt={landscapeImages[currentLandscapeIndex].alt}
-                    fill // Use fill instead of layout="fill" and objectFit="cover"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" // Provide sizes for responsive images
+                    fill 
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" 
                     className="rounded-md object-cover animate-fade-in" 
                   />
                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
