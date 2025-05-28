@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, History, ListChecks, ShieldAlertIcon, TrendingUp, Globe, Lightbulb, ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
@@ -96,11 +96,13 @@ const shuffleArray = <T>(array: T[]): T[] => {
 const NUMBER_OF_INSIGHTS_TO_DISPLAY = 3;
 
 const landscapeImages = [
-  { src: 'https://picsum.photos/800/450?random=1', alt: 'Abstract visualization of network traffic and cyber threats', 'data-ai-hint': 'cyber security' },
-  { src: 'https://picsum.photos/800/450?random=2', alt: 'Conceptual global data connections with highlighted risk areas', 'data-ai-hint': 'global network' },
-  { src: 'https://picsum.photos/800/450?random=3', alt: 'Digital representation of a world map showing cyber attack vectors', 'data-ai-hint': 'world map' },
-  { src: 'https://picsum.photos/800/450?random=4', alt: 'Futuristic interface displaying cybersecurity defense systems', 'data-ai-hint': 'security interface' },
+  { src: 'https://picsum.photos/seed/cyber1/800/450', alt: 'Digital network connections with glowing nodes, conceptualizing global cyber traffic', 'data-ai-hint': 'network traffic' },
+  { src: 'https://picsum.photos/seed/cyber2/800/450', alt: 'Abstract representation of data streams and potential breach points', 'data-ai-hint': 'data breach' },
+  { src: 'https://picsum.photos/seed/cyber3/800/450', alt: 'World map overlay with interconnected lines symbolizing cyber attack vectors and defense', 'data-ai-hint': 'attack vectors' },
+  { src: 'https://picsum.photos/seed/cyber4/800/450', alt: 'Futuristic command center interface displaying threat analytics', 'data-ai-hint': 'threat analytics' },
 ];
+
+const SLIDESHOW_INTERVAL_MS = 5000;
 
 export default function DashboardPage() {
   const [activeThreatsCount, setActiveThreatsCount] = useState(0);
@@ -112,6 +114,7 @@ export default function DashboardPage() {
   const [recentEvents, setRecentEvents] = useState<DashboardEvent[]>([]);
   const [globalThreatInsights, setGlobalThreatInsights] = useState<string[]>([]);
   const [currentLandscapeIndex, setCurrentLandscapeIndex] = useState(0);
+  const slideshowIntervalIdRef = useRef<NodeJS.Timeout | null>(null);
 
   const generateRandomData = useCallback(() => {
     setActiveThreatsCount(Math.floor(Math.random() * 25) + 8); 
@@ -152,38 +155,52 @@ export default function DashboardPage() {
     setGlobalThreatInsights(shuffleArray(allPossibleInsights).slice(0, NUMBER_OF_INSIGHTS_TO_DISPLAY));
   }, []);
 
+  const startSlideshowInterval = useCallback(() => {
+    if (slideshowIntervalIdRef.current) {
+      clearInterval(slideshowIntervalIdRef.current);
+    }
+    slideshowIntervalIdRef.current = setInterval(() => {
+      setCurrentLandscapeIndex(prevIndex => (prevIndex + 1) % landscapeImages.length);
+    }, SLIDESHOW_INTERVAL_MS);
+  }, []);
+
   useEffect(() => {
     generateRandomData(); 
+    startSlideshowInterval();
     
     const insightsIntervalId = setInterval(() => {
        setGlobalThreatInsights(shuffleArray(allPossibleInsights).slice(0, NUMBER_OF_INSIGHTS_TO_DISPLAY));
     }, 7000); 
 
-    const slideshowIntervalId = setInterval(() => {
-      setCurrentLandscapeIndex(prevIndex => (prevIndex + 1) % landscapeImages.length);
-    }, 5000); 
-
     const dataRefreshIntervalId = setInterval(() => {
       generateRandomData(); 
     }, 30000); 
 
-
     return () => {
+      if (slideshowIntervalIdRef.current) {
+        clearInterval(slideshowIntervalIdRef.current);
+      }
       clearInterval(insightsIntervalId);
-      clearInterval(slideshowIntervalId);
       clearInterval(dataRefreshIntervalId);
     };
-
-  }, [generateRandomData]);
+  }, [generateRandomData, startSlideshowInterval]);
 
 
   const handlePreviousImage = useCallback(() => {
     setCurrentLandscapeIndex(prevIndex => (prevIndex - 1 + landscapeImages.length) % landscapeImages.length);
-  }, []);
+    startSlideshowInterval(); // Reset interval on manual change
+  }, [startSlideshowInterval]);
 
   const handleNextImage = useCallback(() => {
     setCurrentLandscapeIndex(prevIndex => (prevIndex + 1) % landscapeImages.length);
-  }, []);
+    startSlideshowInterval(); // Reset interval on manual change
+  }, [startSlideshowInterval]);
+
+  const handleDotNavigation = useCallback((index: number) => {
+    setCurrentLandscapeIndex(index);
+    startSlideshowInterval(); // Reset interval on manual change
+  }, [startSlideshowInterval]);
+
 
   const getSeverityClass = (severity: DashboardVulnerability['severity']) => {
     switch (severity) {
@@ -303,9 +320,9 @@ export default function DashboardPage() {
                     key={landscapeImages[currentLandscapeIndex].src} 
                     src={landscapeImages[currentLandscapeIndex].src}
                     alt={landscapeImages[currentLandscapeIndex].alt}
-                    layout="fill"
-                    objectFit="cover"
-                    className="rounded-md animate-fade-in" 
+                    fill // Use fill instead of layout="fill" and objectFit="cover"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" // Provide sizes for responsive images
+                    className="rounded-md object-cover animate-fade-in" 
                   />
                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                      <span className="text-white text-lg font-semibold">View Larger</span>
@@ -317,9 +334,9 @@ export default function DashboardPage() {
                   <Image
                     src={landscapeImages[currentLandscapeIndex].src}
                     alt={landscapeImages[currentLandscapeIndex].alt + " - Enlarged View"}
-                    layout="fill"
-                    objectFit="contain"
-                    className="rounded-md"
+                    fill
+                    sizes="90vw"
+                    className="rounded-md object-contain"
                   />
                 </div>
               </DialogContent>
@@ -346,7 +363,7 @@ export default function DashboardPage() {
               {landscapeImages.map((_, index) => (
                 <button
                   key={index}
-                  onClick={() => setCurrentLandscapeIndex(index)}
+                  onClick={() => handleDotNavigation(index)}
                   aria-label={`Go to image ${index + 1}`}
                   className={cn(
                     "h-2 w-2 rounded-full transition-colors",
