@@ -1,21 +1,21 @@
 
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertTriangle, History, ListChecks, ShieldAlertIcon, TrendingUp, Loader2, Globe, Lightbulb } from "lucide-react";
+import { AlertTriangle, History, ListChecks, ShieldAlertIcon, TrendingUp, Loader2, Globe, Lightbulb, ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { ActiveThreatsChart } from "@/components/dashboard/active-threats-chart";
 import { SecurityScoreDisplay } from "@/components/dashboard/security-score-display";
 import { ComplianceStatusChart } from "@/components/dashboard/compliance-status-chart";
-import { generateGlobalThreatMapImage } from '@/lib/actions';
 import { formatDistanceToNow } from 'date-fns';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { cn } from '@/lib/utils'; // Added this import
 
 const sampleEventTemplates = [
   { title: (target?: string) => `Phishing attempt blocked: ${target || 'user@example.com'}`, source: (ip?: string) => `Source IP: ${ip || '198.51.100.12'}` },
@@ -84,7 +84,6 @@ const allPossibleInsights = [
   "Threat intelligence feeds provide valuable, up-to-date information about emerging threats, vulnerabilities, and attacker tactics, techniques, and procedures (TTPs)."
 ];
 
-// Simple shuffle function
 const shuffleArray = <T>(array: T[]): T[] => {
   const newArray = [...array];
   for (let i = newArray.length - 1; i > 0; i--) {
@@ -96,6 +95,12 @@ const shuffleArray = <T>(array: T[]): T[] => {
 
 const NUMBER_OF_INSIGHTS_TO_DISPLAY = 3;
 
+const landscapeImages = [
+  { src: 'https://placehold.co/800x450.png', alt: 'Cybersecurity threat map - Abstract network visualization', hint: 'network abstract' },
+  { src: 'https://placehold.co/800x450.png', alt: 'Global connections and data flows', hint: 'global connections' },
+  { src: 'https://placehold.co/800x450.png', alt: 'Digital world with highlighted threat vectors', hint: 'digital world' },
+  { src: 'https://placehold.co/800x450.png', alt: 'Futuristic city with cyber defense overlay', hint: 'futuristic city' },
+];
 
 export default function DashboardPage() {
   const [activeThreatsCount, setActiveThreatsCount] = useState(0);
@@ -105,16 +110,14 @@ export default function DashboardPage() {
   const [securityScore, setSecurityScore] = useState(0);
   const [scoreImprovement, setScoreImprovement] = useState(0);
   const [recentEvents, setRecentEvents] = useState<DashboardEvent[]>([]);
-  const [threatMapImageUrl, setThreatMapImageUrl] = useState<string | null>(null);
-  const [isThreatMapLoading, setIsThreatMapLoading] = useState(true);
-  const [threatMapError, setThreatMapError] = useState<string | null>(null);
   const [globalThreatInsights, setGlobalThreatInsights] = useState<string[]>([]);
+  const [currentLandscapeIndex, setCurrentLandscapeIndex] = useState(0);
 
   useEffect(() => {
-    setActiveThreatsCount(Math.floor(Math.random() * 25) + 8); // 8-32
-    setThreatChange(Math.floor(Math.random() * 11) - 5); // -5 to +5
+    setActiveThreatsCount(Math.floor(Math.random() * 25) + 8); 
+    setThreatChange(Math.floor(Math.random() * 11) - 5); 
 
-    const numVulsToShow = Math.floor(Math.random() * 4) + 4; // 4-7 vulnerabilities to show
+    const numVulsToShow = Math.floor(Math.random() * 4) + 4; 
     const shuffledVuls = [...sampleVulnerabilitiesList].sort(() => 0.5 - Math.random());
     const selectedVuls = shuffledVuls.slice(0, numVulsToShow).map(v => ({
         id: v.id,
@@ -125,17 +128,17 @@ export default function DashboardPage() {
     setVulnerabilities(selectedVuls);
     setCriticalVulnerabilityCount(selectedVuls.filter(v => v.severity === 'Critical').length);
 
-    setSecurityScore(Math.floor(Math.random() * 36) + 60); // 60-95
-    setScoreImprovement(Math.floor(Math.random() * 7) + 1); // 1-7%
+    setSecurityScore(Math.floor(Math.random() * 36) + 60); 
+    setScoreImprovement(Math.floor(Math.random() * 7) + 1); 
 
     const generatedEvents: DashboardEvent[] = sampleEventTemplates
       .sort(() => 0.5 - Math.random())
-      .slice(0, Math.floor(Math.random() * 3) + 4) // 4-6 events
+      .slice(0, Math.floor(Math.random() * 3) + 4) 
       .map((template, i) => {
         const randomArg = [getRandomIp(), `user${Math.floor(Math.random()*100)}`, `file_${Math.random().toString(36).substring(7)}.sh`, `policy${i+1}`, `CVE-2024-${Math.floor(Math.random()*1000)+2000}`][Math.floor(Math.random()*5)];
         const title = typeof template.title === 'function' ? template.title(randomArg) : 'Generic Event Title';
         const source = typeof template.source === 'function' ? template.source(randomArg) : 'Generic Source';
-        const timestamp = getRandomPastDate(24 * (i + 1) * 0.5 ); // More recent events
+        const timestamp = getRandomPastDate(24 * (i + 1) * 0.5 ); 
         return {
           id: `event-${i}-${Date.now()}`,
           title,
@@ -145,31 +148,30 @@ export default function DashboardPage() {
         };
       });
     setRecentEvents(generatedEvents.sort((a,b) => b.timestamp.getTime() - a.timestamp.getTime()));
-
-    const fetchThreatMap = async () => {
-      setIsThreatMapLoading(true);
-      setThreatMapError(null);
-      try {
-        const result = await generateGlobalThreatMapImage();
-        setThreatMapImageUrl(result.imageDataUri);
-      } catch (error) {
-        console.error("Failed to generate threat map:", error);
-        setThreatMapError(error instanceof Error ? error.message : "Could not load threat map.");
-      } finally {
-        setIsThreatMapLoading(false);
-      }
-    };
-    fetchThreatMap();
-
+    
     setGlobalThreatInsights(shuffleArray(allPossibleInsights).slice(0, NUMBER_OF_INSIGHTS_TO_DISPLAY));
     
-    // Interval to shuffle insights
-    const intervalId = setInterval(() => {
+    const insightsIntervalId = setInterval(() => {
       setGlobalThreatInsights(shuffleArray(allPossibleInsights).slice(0, NUMBER_OF_INSIGHTS_TO_DISPLAY));
-    }, 15000); // Shuffle every 15 seconds
+    }, 15000); 
 
-    return () => clearInterval(intervalId); // Cleanup interval on component unmount
+    const slideshowIntervalId = setInterval(() => {
+      setCurrentLandscapeIndex(prevIndex => (prevIndex + 1) % landscapeImages.length);
+    }, 5000); // Change image every 5 seconds
 
+    return () => {
+      clearInterval(insightsIntervalId);
+      clearInterval(slideshowIntervalId);
+    };
+
+  }, []);
+
+  const handlePreviousImage = useCallback(() => {
+    setCurrentLandscapeIndex(prevIndex => (prevIndex - 1 + landscapeImages.length) % landscapeImages.length);
+  }, []);
+
+  const handleNextImage = useCallback(() => {
+    setCurrentLandscapeIndex(prevIndex => (prevIndex + 1) % landscapeImages.length);
   }, []);
 
   const getSeverityClass = (severity: DashboardVulnerability['severity']) => {
@@ -272,64 +274,77 @@ export default function DashboardPage() {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Globe className="h-5 w-5" /> Global Threat Landscape</CardTitle>
-          <CardDescription>Visualizing threat origins and targets worldwide. Click map to enlarge.</CardDescription>
+          <CardTitle className="flex items-center gap-2"><Globe className="h-5 w-5" /> Global Landscape Slideshow</CardTitle>
+          <CardDescription>A slideshow visualizing different aspects of the global cyber landscape. Click an image to enlarge.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Dialog>
-            <DialogTrigger asChild disabled={!threatMapImageUrl || isThreatMapLoading || !!threatMapError}>
-              <div
-                className={`aspect-video w-full bg-muted rounded-md flex items-center justify-center text-muted-foreground relative overflow-hidden
-                            ${threatMapImageUrl && !isThreatMapLoading && !threatMapError ? 'cursor-zoom-in hover:shadow-lg transition-shadow' : 'cursor-default'}`}
-                role="button"
-                aria-label={threatMapImageUrl && !isThreatMapLoading && !threatMapError ? "View larger threat map" : "Threat map image"}
-                tabIndex={threatMapImageUrl && !isThreatMapLoading && !threatMapError ? 0 : -1}
-                data-ai-hint="cybersecurity global map"
-              >
-                {threatMapImageUrl && !isThreatMapLoading && !threatMapError ? (
+          <div className="relative group">
+            <Dialog>
+              <DialogTrigger asChild>
+                <div
+                  className="aspect-video w-full bg-muted rounded-md flex items-center justify-center text-muted-foreground relative overflow-hidden cursor-zoom-in hover:shadow-lg transition-shadow"
+                  role="button"
+                  aria-label="View larger landscape image"
+                  tabIndex={0}
+                  data-ai-hint={landscapeImages[currentLandscapeIndex].hint}
+                >
                   <Image
-                    src={threatMapImageUrl}
-                    alt="Global Threat Map Preview"
+                    key={landscapeImages[currentLandscapeIndex].src} // Add key for smooth transition
+                    src={landscapeImages[currentLandscapeIndex].src}
+                    alt={landscapeImages[currentLandscapeIndex].alt}
                     layout="fill"
                     objectFit="cover"
-                    className="rounded-md"
-                    priority 
+                    className="rounded-md animate-fade-in" // Simple fade-in animation
                   />
-                ) : isThreatMapLoading ? (
-                  <div className="flex flex-col items-center justify-center text-center p-4">
-                    <Loader2 className="h-12 w-12 animate-spin text-primary mb-3" />
-                    <p className="text-base font-semibold">Generating Map...</p>
-                    <p className="text-xs text-muted-foreground">Please wait.</p>
-                  </div>
-                ) : threatMapError ? (
-                  <div className="flex flex-col items-center justify-center text-center p-4">
-                    <AlertTriangle className="h-12 w-12 text-destructive mb-3" />
-                    <p className="text-base font-semibold text-destructive">Map Error</p>
-                    <p className="text-xs text-muted-foreground max-w-xs">{threatMapError}</p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center text-center p-4">
-                    <Globe className="h-16 w-16 text-muted-foreground mb-3" />
-                    <p className="text-base font-semibold">Threat Map</p>
-                    <p className="text-xs text-muted-foreground">Visual will appear here.</p>
-                  </div>
-                )}
-              </div>
-            </DialogTrigger>
-            <DialogContent className="max-w-5xl w-[90vw] h-[85vh] p-2">
-              {threatMapImageUrl && (
+                   <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                     <span className="text-white text-lg font-semibold">View Larger</span>
+                   </div>
+                </div>
+              </DialogTrigger>
+              <DialogContent className="max-w-5xl w-[90vw] h-[85vh] p-2">
                 <div className="w-full h-full relative">
                   <Image
-                    src={threatMapImageUrl}
-                    alt="Global Threat Map - Enlarged View"
+                    src={landscapeImages[currentLandscapeIndex].src}
+                    alt={landscapeImages[currentLandscapeIndex].alt + " - Enlarged View"}
                     layout="fill"
                     objectFit="contain"
                     className="rounded-md"
                   />
                 </div>
-              )}
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+            <Button
+              variant="outline"
+              size="icon"
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 opacity-50 group-hover:opacity-100 transition-opacity bg-background/70 hover:bg-background"
+              onClick={handlePreviousImage}
+              aria-label="Previous image"
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 opacity-50 group-hover:opacity-100 transition-opacity bg-background/70 hover:bg-background"
+              onClick={handleNextImage}
+              aria-label="Next image"
+            >
+              <ChevronRight className="h-6 w-6" />
+            </Button>
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 flex space-x-1.5">
+              {landscapeImages.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentLandscapeIndex(index)}
+                  aria-label={`Go to image ${index + 1}`}
+                  className={cn(
+                    "h-2 w-2 rounded-full transition-colors",
+                    currentLandscapeIndex === index ? "bg-primary" : "bg-muted-foreground/50 hover:bg-muted-foreground"
+                  )}
+                />
+              ))}
+            </div>
+          </div>
         </CardContent>
       </Card>
       {globalThreatInsights.length > 0 && (
@@ -348,8 +363,16 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       )}
+      <style jsx global>{`
+        .animate-fade-in {
+          animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0.7; }
+          to { opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }
-
     
