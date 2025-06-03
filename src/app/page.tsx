@@ -12,6 +12,8 @@ import { formatDistanceToNow } from 'date-fns';
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -171,7 +173,7 @@ export default function DashboardPage() {
     
     const insightsIntervalId = setInterval(() => {
        setGlobalThreatInsights(shuffleArray(allPossibleInsights).slice(0, NUMBER_OF_INSIGHTS_TO_DISPLAY));
-    }, SLIDESHOW_INTERVAL_MS); // Changed from 7000 to SLIDESHOW_INTERVAL_MS
+    }, SLIDESHOW_INTERVAL_MS);
 
     const dataRefreshIntervalId = setInterval(() => {
       generateRandomData(); 
@@ -324,7 +326,7 @@ export default function DashboardPage() {
                     src={landscapeImages[currentLandscapeIndex].src}
                     alt={landscapeImages[currentLandscapeIndex].alt}
                     fill 
-                    priority={currentLandscapeIndex === 0} // Prioritize loading the first image
+                    priority={currentLandscapeIndex === 0}
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" 
                     className="rounded-md object-cover animate-fade-in" 
                   />
@@ -333,13 +335,18 @@ export default function DashboardPage() {
                    </div>
                 </div>
               </DialogTrigger>
-              <DialogContent className="max-w-5xl w-[90vw] h-[85vh] p-2">
-                <div className="w-full h-full relative">
+              <DialogContent className="max-w-5xl w-[90vw] h-[85vh] p-4 flex flex-col">
+                <DialogHeader className="pb-2 pt-0 px-0">
+                  <DialogTitle>
+                    {landscapeImages[currentLandscapeIndex].alt + " - Enlarged View"}
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="flex-1 relative">
                   <Image
                     src={landscapeImages[currentLandscapeIndex].src}
                     alt={landscapeImages[currentLandscapeIndex].alt + " - Enlarged View"}
                     fill
-                    sizes="90vw"
+                    sizes="(max-width: 1200px) 80vw, 45vw"
                     className="rounded-md object-contain"
                   />
                 </div>
