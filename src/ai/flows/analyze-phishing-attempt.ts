@@ -83,37 +83,46 @@ const analyzePhishingAttemptFlow = ai.defineFlow(
   },
   async (input) => {
     try {
-      // This is the core Genkit call to the prompt.
-      // It internally handles sending the prompt to the model and parsing the response against outputSchema.
       const result = await prompt(input);
-      const output = result.output; // The parsed output adhering to AnalyzePhishingAttemptOutputSchema
+      const output = result.output; 
 
-      // If 'output' is null or undefined, it means the model's response might have been empty
-      // or couldn't be successfully parsed into the schema by Genkit, even if no hard error was thrown.
       if (!output) {
+        let safetyBlocked = false;
+        let safetyBlockDetails = "";
+        if (result.candidates && result.candidates.length > 0) {
+            result.candidates.forEach((candidate, index) => {
+                if (candidate.finishReason === 'SAFETY') {
+                    console.error(`analyzePhishingAttemptFlow: Candidate ${index} blocked due to SAFETY. Ratings:`, JSON.stringify(candidate.safetyRatings, null, 2));
+                    safetyBlocked = true;
+                    safetyBlockDetails = ` (Reason: ${candidate.finishReason}, Details: ${JSON.stringify(candidate.safetyRatings)})`;
+                }
+            });
+        }
+        
         console.error(
           'analyzePhishingAttemptFlow: AI model returned null or undefined output after parsing. Input:',
-          JSON.stringify(input), // Log input for debugging
-          'This could be due to content filters or the model providing an empty/invalid structured response.'
+          JSON.stringify(input),
+          'Raw result object:', JSON.stringify(result, null, 2)
         );
-        throw new Error(
-          'AI model returned no valid structured data. Check server logs.'
-        );
+        
+        if (safetyBlocked) {
+            throw new Error(
+              `AI analysis blocked due to content safety reasons. Please revise your input.${safetyBlockDetails}`
+            );
+        } else {
+            throw new Error(
+              'AI model returned no valid structured data. This might be due to an internal model error or an unparseable response. Check server logs for the raw result object and details.'
+            );
+        }
       }
       return output;
     } catch (e: any) {
-      // This catch block will handle errors during the execution of `prompt(input)`
-      // (e.g., network issues, API errors from the model provider, or if Genkit fails to parse
-      // a malformed non-JSON response from the model before even attempting Zod validation).
       console.error(
-        `analyzePhishingAttemptFlow: Error during prompt execution or response parsing. Input: ${JSON.stringify(input)} Error: ${e.message}`, // Log input and error message
-        e.stack // Log the stack trace for more details
+        `analyzePhishingAttemptFlow: Error during prompt execution, response parsing, or explicit throw due to invalid output. Input: ${JSON.stringify(input)} Error: ${e.message}`, 
+        e.stack 
       );
-      // Re-throw a new error that will be caught by the calling action in src/lib/actions.ts
-      // which will then show the generic "Failed to analyze phishing attempt..." message to the user.
-      throw new Error(
-        `AI analysis failed during prompt execution or response parsing: ${e.message || 'Unknown error during AI processing.'}`
-      );
+      // Re-throw the error (either the original or the one we created) to be caught by the calling action in src/lib/actions.ts
+      throw e;
     }
   }
 );
