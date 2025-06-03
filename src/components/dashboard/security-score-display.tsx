@@ -2,7 +2,7 @@
 'use client';
 
 import { Pie, PieChart, ResponsiveContainer, Cell } from 'recharts';
-import { ChartConfig, ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 
 interface SecurityScoreDisplayProps {
   score: number;
@@ -11,73 +11,71 @@ interface SecurityScoreDisplayProps {
 const chartConfig = {
   score: {
     label: 'Score',
+    color: 'hsl(var(--primary))',
   },
   remaining: {
     label: 'Remaining',
+    color: 'hsl(var(--muted))',
   },
 } satisfies ChartConfig;
 
 export function SecurityScoreDisplay({ score }: SecurityScoreDisplayProps) {
-  const data = [
-    { name: 'score', value: score, fill: 'hsl(var(--primary))' },
-    { name: 'remaining', value: 100 - score, fill: 'hsl(var(--muted))' },
+  const chartData = [
+    { name: 'score', value: score, fill: 'var(--color-score)' },
+    { name: 'remaining', value: 100 - score, fill: 'var(--color-remaining)' },
   ];
 
   return (
     <ChartContainer
       config={chartConfig}
-      className="mx-auto aspect-square h-[120px] w-[120px]"
+      className="mx-auto aspect-square h-[120px] w-[120px] relative" // Added relative for positioning context
     >
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
-          <ChartTooltipContent
-            hideLabel
-            hideIndicator
-            formatter={(value, name) => (
-              <div className="flex flex-col items-center">
-                {name === "score" && (
-                   <>
-                    <span className="text-2xl font-bold">{value}%</span>
-                    <span className="text-xs text-muted-foreground">Security Score</span>
-                   </>
-                )}
-              </div>
-            )}
+          <ChartTooltip
+            cursor={false}
+            content={<ChartTooltipContent 
+                        hideLabel 
+                        hideIndicator
+                        formatter={(value, name, props) => {
+                          if (props.payload?.name === 'score') {
+                            return (
+                              <div className="text-center">
+                                <div className="font-bold text-lg">{`${props.payload.value}%`}</div>
+                                <div className="text-xs text-muted-foreground">Security Score</div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }} 
+                      />}
           />
           <Pie
-            data={data}
+            data={chartData}
             dataKey="value"
             nameKey="name"
-            innerRadius="70%"
+            innerRadius="70%" // Makes it a donut
             outerRadius="100%"
             startAngle={90}
-            endAngle={90 + (score / 100) * 360}
+            endAngle={450} // Go full circle to allow background
             cy="50%"
             strokeWidth={0}
           >
-            {data.map((entry) => (
-              <Cell key={entry.name} fill={entry.fill} />
-            ))}
+            {/* Background for the whole circle */}
+            <Cell key="remaining-bg" fill={chartConfig.remaining.color} /> 
+            {/* Foreground for the score part */}
+            <Cell key="score-fg" fill={chartConfig.score.color} />
           </Pie>
-           {/* Background Pie for the remaining part */}
-          <Pie
-            data={[{ value: 100 }]} // Full circle
-            dataKey="value"
-            innerRadius="70%"
-            outerRadius="100%"
-            startAngle={90}
-            endAngle={450} // Full circle
-            cy="50%"
-            fill="hsl(var(--muted))"
-            strokeWidth={0}
-            isAnimationActive={false} // No animation for background
-          />
         </PieChart>
       </ResponsiveContainer>
-       <div className="absolute inset-0 flex flex-col items-center justify-center" aria-hidden="true">
-          <div className="text-3xl font-bold text-primary">{score}%</div>
-          <div className="text-xs text-muted-foreground">Security Score</div>
-        </div>
+      {/* Centered Text Overlay */}
+      <div 
+        className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" 
+        aria-hidden="true"
+      >
+        <div className="text-3xl font-bold text-primary">{score}%</div>
+        <div className="text-xs text-muted-foreground">Security Score</div>
+      </div>
     </ChartContainer>
   );
 }
