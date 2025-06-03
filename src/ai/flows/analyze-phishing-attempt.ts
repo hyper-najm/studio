@@ -1,3 +1,4 @@
+
 // Use server directive.
 'use server';
 
@@ -80,15 +81,40 @@ const analyzePhishingAttemptFlow = ai.defineFlow(
     inputSchema: AnalyzePhishingAttemptInputSchema,
     outputSchema: AnalyzePhishingAttemptOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
-    if (!output) {
-      // This error will be caught by the action in src/lib/actions.ts and a generic message shown to user.
-      // Logging here for server-side debugging.
-      console.error('AI model did not return a valid response for analyzePhishingAttempt. This might be due to content filters or an internal error with the model/API.');
-      throw new Error('AI model did not return a valid response. Check server logs.');
+  async (input) => {
+    try {
+      // This is the core Genkit call to the prompt.
+      // It internally handles sending the prompt to the model and parsing the response against outputSchema.
+      const result = await prompt(input);
+      const output = result.output; // The parsed output adhering to AnalyzePhishingAttemptOutputSchema
+
+      // If 'output' is null or undefined, it means the model's response might have been empty
+      // or couldn't be successfully parsed into the schema by Genkit, even if no hard error was thrown.
+      if (!output) {
+        console.error(
+          'analyzePhishingAttemptFlow: AI model returned null or undefined output after parsing. Input:',
+          JSON.stringify(input), // Log input for debugging
+          'This could be due to content filters or the model providing an empty/invalid structured response.'
+        );
+        throw new Error(
+          'AI model returned no valid structured data. Check server logs.'
+        );
+      }
+      return output;
+    } catch (e: any) {
+      // This catch block will handle errors during the execution of `prompt(input)`
+      // (e.g., network issues, API errors from the model provider, or if Genkit fails to parse
+      // a malformed non-JSON response from the model before even attempting Zod validation).
+      console.error(
+        `analyzePhishingAttemptFlow: Error during prompt execution or response parsing. Input: ${JSON.stringify(input)} Error: ${e.message}`, // Log input and error message
+        e.stack // Log the stack trace for more details
+      );
+      // Re-throw a new error that will be caught by the calling action in src/lib/actions.ts
+      // which will then show the generic "Failed to analyze phishing attempt..." message to the user.
+      throw new Error(
+        `AI analysis failed during prompt execution or response parsing: ${e.message || 'Unknown error during AI processing.'}`
+      );
     }
-    return output;
   }
 );
 
