@@ -1,50 +1,54 @@
 
 // src/services/settingsService.ts
 import { db } from '@/lib/firebaseConfig';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, type Timestamp } from 'firebase/firestore';
 
 export interface UserSettings {
   profileName: string;
-  profileEmail: string;
+  profileEmail: string; // This might be redundant if using Firebase Auth email primarily
   is2FAEnabled: boolean;
   emailCriticalAlerts: boolean;
   inAppSystemUpdates: boolean;
-  lastUpdated?: any; // Firestore serverTimestamp
+  lastUpdated?: Timestamp; 
 }
 
 const USER_SETTINGS_COLLECTION = 'userSettings';
-// For simplicity, using a hardcoded user ID. In a real app, this would be dynamic.
-const DEFAULT_USER_ID = 'defaultUser'; 
 
-export async function getUserSettings(): Promise<UserSettings | null> {
+export async function getUserSettings(userId: string): Promise<UserSettings | null> {
+  if (!userId) {
+    console.warn("getUserSettings called without userId.");
+    return null; 
+  }
   try {
-    const docRef = doc(db, USER_SETTINGS_COLLECTION, DEFAULT_USER_ID);
+    const docRef = doc(db, USER_SETTINGS_COLLECTION, userId);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
       return docSnap.data() as UserSettings;
     } else {
-      console.log("No such document! Returning null or default settings.");
-      // Optionally, return default settings or handle this case upstream
+      console.log(`No settings document for user ${userId}!`);
       return null; 
     }
   } catch (error) {
-    console.error("Error getting user settings: ", error);
+    console.error(`Error getting user settings for ${userId}: `, error);
     throw new Error("Failed to fetch user settings.");
   }
 }
 
-export async function saveUserSettings(settings: Partial<UserSettings>): Promise<void> {
+export async function saveUserSettings(userId: string, settings: Partial<Omit<UserSettings, 'lastUpdated'>>): Promise<void> {
+  if (!userId) {
+    console.error("saveUserSettings called without userId.");
+    throw new Error("User ID is required to save settings.");
+  }
   try {
-    const docRef = doc(db, USER_SETTINGS_COLLECTION, DEFAULT_USER_ID);
-    // Use setDoc with merge: true to update existing fields or create the document if it doesn't exist.
+    const docRef = doc(db, USER_SETTINGS_COLLECTION, userId);
     await setDoc(docRef, { 
       ...settings, 
       lastUpdated: serverTimestamp() 
     }, { merge: true });
-    console.log("User settings saved successfully.");
+    console.log(`User settings saved successfully for ${userId}.`);
   } catch (error) {
-    console.error("Error saving user settings: ", error);
+    console.error(`Error saving user settings for ${userId}: `, error);
     throw new Error("Failed to save user settings.");
   }
 }

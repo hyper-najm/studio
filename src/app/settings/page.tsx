@@ -8,13 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Shield, Bell, Palette, Save, Loader2 } from "lucide-react";
+import { User, Shield, Bell, Palette, Save, Loader2, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getUserSettings, saveUserSettings, type UserSettings } from "@/services/settingsService";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from 'next/navigation';
 
-const defaultSettings: UserSettings = {
-  profileName: "Cyber Guardian User",
-  profileEmail: "user@cyberguardian.pro",
+const defaultSettingsValues: Omit<UserSettings, 'lastUpdated'> = {
+  profileName: "", // Will be populated from user profile or left blank
+  profileEmail: "", // Will be populated from user profile
   is2FAEnabled: false,
   emailCriticalAlerts: true,
   inAppSystemUpdates: true,
@@ -22,62 +24,78 @@ const defaultSettings: UserSettings = {
 
 export default function SettingsPage() {
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   // Profile State
-  const [profileName, setProfileName] = useState(defaultSettings.profileName);
-  const [profileEmail, setProfileEmail] = useState(defaultSettings.profileEmail);
+  const [profileName, setProfileName] = useState(defaultSettingsValues.profileName);
+  const [profileEmail, setProfileEmail] = useState(defaultSettingsValues.profileEmail);
 
   // Security State
-  const [is2FAEnabled, setIs2FAEnabled] = useState(defaultSettings.is2FAEnabled);
+  const [is2FAEnabled, setIs2FAEnabled] = useState(defaultSettingsValues.is2FAEnabled);
 
   // Notifications State
-  const [emailCriticalAlerts, setEmailCriticalAlerts] = useState(defaultSettings.emailCriticalAlerts);
-  const [inAppSystemUpdates, setInAppSystemUpdates] = useState(defaultSettings.inAppSystemUpdates);
+  const [emailCriticalAlerts, setEmailCriticalAlerts] = useState(defaultSettingsValues.emailCriticalAlerts);
+  const [inAppSystemUpdates, setInAppSystemUpdates] = useState(defaultSettingsValues.inAppSystemUpdates);
 
   useEffect(() => {
+    if (authLoading) return; // Wait for auth state to be determined
+
+    if (!user) {
+      toast({ variant: "destructive", title: "Not Authenticated", description: "Please log in to access settings." });
+      router.push('/login');
+      return;
+    }
+
     async function loadSettings() {
-      setIsLoading(true);
+      if (!user) return;
+      setIsLoadingSettings(true);
       try {
-        const settings = await getUserSettings();
+        const settings = await getUserSettings(user.uid);
         if (settings) {
-          setProfileName(settings.profileName);
-          setProfileEmail(settings.profileEmail);
+          setProfileName(settings.profileName || user.displayName || user.email?.split('@')[0] || '');
+          setProfileEmail(settings.profileEmail || user.email || '');
           setIs2FAEnabled(settings.is2FAEnabled);
           setEmailCriticalAlerts(settings.emailCriticalAlerts);
           setInAppSystemUpdates(settings.inAppSystemUpdates);
         } else {
-          // Set to defaults if no settings found in DB (first time user)
-          setProfileName(defaultSettings.profileName);
-          setProfileEmail(defaultSettings.profileEmail);
-          setIs2FAEnabled(defaultSettings.is2FAEnabled);
-          setEmailCriticalAlerts(defaultSettings.emailCriticalAlerts);
-          setInAppSystemUpdates(defaultSettings.inAppSystemUpdates);
-          toast({ title: "Default Settings Loaded", description: "No existing settings found, using defaults." });
+          // Set to defaults if no settings found in DB (first time user for settings)
+          setProfileName(user.displayName || user.email?.split('@')[0] || defaultSettingsValues.profileName);
+          setProfileEmail(user.email || defaultSettingsValues.profileEmail);
+          setIs2FAEnabled(defaultSettingsValues.is2FAEnabled);
+          setEmailCriticalAlerts(defaultSettingsValues.emailCriticalAlerts);
+          setInAppSystemUpdates(defaultSettingsValues.inAppSystemUpdates);
+          toast({ title: "Default Settings Loaded", description: "Set up your preferences." });
         }
       } catch (error) {
         toast({
           variant: "destructive",
           title: "Error Loading Settings",
-          description: error instanceof Error ? error.message : "Could not load settings from database.",
+          description: error instanceof Error ? error.message : "Could not load settings.",
         });
-        // Fallback to default settings on error
-        setProfileName(defaultSettings.profileName);
-        setProfileEmail(defaultSettings.profileEmail);
-        setIs2FAEnabled(defaultSettings.is2FAEnabled);
-        setEmailCriticalAlerts(defaultSettings.emailCriticalAlerts);
-        setInAppSystemUpdates(defaultSettings.inAppSystemUpdates);
+        // Fallback to defaults on error
+        setProfileName(user.displayName || user.email?.split('@')[0] || defaultSettingsValues.profileName);
+        setProfileEmail(user.email || defaultSettingsValues.profileEmail);
+        setIs2FAEnabled(defaultSettingsValues.is2FAEnabled);
+        setEmailCriticalAlerts(defaultSettingsValues.emailCriticalAlerts);
+        setInAppSystemUpdates(defaultSettingsValues.inAppSystemUpdates);
       } finally {
-        setIsLoading(false);
+        setIsLoadingSettings(false);
       }
     }
     loadSettings();
-  }, [toast]);
+  }, [user, authLoading, toast, router]);
 
   const handleSaveChanges = async (section: string) => {
+    if (!user) {
+      toast({ variant: "destructive", title: "Not Authenticated", description: "Cannot save settings." });
+      return;
+    }
     setIsSaving(true);
-    let settingsToSave: Partial<UserSettings> = {};
+    let settingsToSave: Partial<Omit<UserSettings, 'lastUpdated'>> = {};
     let successMessage = "Settings saved successfully!";
 
     switch (section) {
@@ -96,14 +114,14 @@ export default function SettingsPage() {
       case "Appearance":
          toast({ title: "Appearance Settings", description: "Appearance settings are currently default. More options coming soon." });
          setIsSaving(false);
-        return; // No save operation for appearance yet
+        return; 
       default:
         setIsSaving(false);
         return;
     }
 
     try {
-      await saveUserSettings(settingsToSave);
+      await saveUserSettings(user.uid, settingsToSave);
       toast({
         title: `${section} Settings Saved`,
         description: successMessage,
@@ -112,28 +130,44 @@ export default function SettingsPage() {
       toast({
         variant: "destructive",
         title: `Error Saving ${section} Settings`,
-        description: error instanceof Error ? error.message : "Could not save settings to database.",
+        description: error instanceof Error ? error.message : "Could not save settings.",
       });
     } finally {
       setIsSaving(false);
     }
   };
 
-  if (isLoading) {
+  if (authLoading || isLoadingSettings) {
     return (
       <div className="flex items-center justify-center h-full">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="ml-4 text-lg">Loading settings...</p>
+        <p className="ml-4 text-lg">{authLoading ? "Authenticating..." : "Loading settings..."}</p>
       </div>
     );
   }
+
+  if (!user && !authLoading) {
+     // This case should be handled by redirection, but as a fallback UI
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><AlertTriangle/> Access Denied</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>You must be logged in to view and manage settings.</p>
+          <Button onClick={() => router.push('/login')} className="mt-4">Go to Login</Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">Settings</CardTitle>
-          <CardDescription>Manage your account settings and preferences. Remember to configure Firestore security rules for a production app.</CardDescription>
+          <CardDescription>Manage your account settings and preferences.</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="profile" className="space-y-4">
@@ -152,12 +186,13 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-1">
-                    <Label htmlFor="name">Full Name</Label>
+                    <Label htmlFor="name">Display Name</Label>
                     <Input id="name" value={profileName} onChange={(e) => setProfileName(e.target.value)} disabled={isSaving} />
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="email">Email Address</Label>
-                    <Input id="email" type="email" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} disabled={isSaving} />
+                    <Input id="email" type="email" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} disabled={isSaving || (user?.emailVerified && user?.email === profileEmail)} title={user?.emailVerified && user?.email === profileEmail ? "Email verified with provider, cannot be changed here." : ""} />
+                    {user?.emailVerified && user?.email === profileEmail && <p className="text-xs text-muted-foreground">This email is verified and primarily managed by your auth provider.</p>}
                   </div>
                 </CardContent>
                 <CardFooter>
@@ -176,24 +211,24 @@ export default function SettingsPage() {
                   <CardDescription>Manage your account security.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Button variant="outline" onClick={() => toast({title: "Change Password", description: "Password change functionality coming soon."})} disabled={isSaving}>Change Password</Button>
+                  <Button variant="outline" onClick={() => toast({title: "Change Password", description: "Password change/reset functionality usually handled via Firebase directly or custom email flows."})} disabled={isSaving}>Change Password</Button>
                   <div className="flex items-center justify-between rounded-lg border p-4">
                     <div>
                       <Label htmlFor="2fa" className="font-semibold">Two-Factor Authentication (2FA)</Label>
                       <p className="text-sm text-muted-foreground">
-                        Enhance your account security by enabling 2FA.
+                        Enhance your account security by enabling 2FA. (Feature coming soon)
                       </p>
                     </div>
                     <Switch 
                       id="2fa" 
                       checked={is2FAEnabled}
                       onCheckedChange={setIs2FAEnabled}
-                      disabled={isSaving} 
+                      disabled={isSaving || true} // 2FA not implemented yet
                     />
                   </div>
                 </CardContent>
                  <CardFooter>
-                  <Button onClick={() => handleSaveChanges("Security")} disabled={isSaving}>
+                  <Button onClick={() => handleSaveChanges("Security")} disabled={isSaving || true}>
                     {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                     Save Security Settings
                   </Button>
@@ -258,7 +293,7 @@ export default function SettingsPage() {
                   </p>
                 </CardContent>
                  <CardFooter>
-                  <Button onClick={() => handleSaveChanges("Appearance")} disabled={isSaving}>
+                  <Button onClick={() => handleSaveChanges("Appearance")} disabled={isSaving || true}>
                     {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                     Save Appearance Settings
                   </Button>
