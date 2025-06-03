@@ -1,3 +1,4 @@
+
 // src/lib/actions.ts
 'use server';
 
@@ -41,8 +42,11 @@ export async function analyzePhishingAttempt(input: AnalyzePhishingAttemptInput)
   try {
     return await _analyzePhishingAttempt(input);
   } catch (error) {
-    console.error("Error in analyzePhishingAttempt:", error);
-    throw new Error("Failed to analyze phishing attempt. Please try again.");
+    console.error("Error in analyzePhishingAttempt action:", error);
+    if (error instanceof Error) {
+      throw new Error(error.message); // Propagate specific error message
+    }
+    throw new Error("Failed to analyze phishing attempt. Please try again."); // Generic fallback
   }
 }
 
@@ -50,7 +54,10 @@ export async function generateSecurityAwarenessTip(input: GenerateSecurityAwaren
   try {
     return await _generateSecurityAwarenessTip(input);
   } catch (error) {
-    console.error("Error in generateSecurityAwarenessTip:", error);
+    console.error("Error in generateSecurityAwarenessTip action:", error);
+    if (error instanceof Error) {
+      throw new Error(error.message);
+    }
     throw new Error("Failed to generate security tip. Please try again.");
   }
 }
@@ -59,7 +66,10 @@ export async function queryCybersecurityKnowledgeBase(input: QueryCybersecurityK
   try {
     return await _queryCybersecurityKnowledgeBase(input);
   } catch (error) {
-    console.error("Error in queryCybersecurityKnowledgeBase:", error);
+    console.error("Error in queryCybersecurityKnowledgeBase action:", error);
+    if (error instanceof Error) {
+      throw new Error(error.message);
+    }
     throw new Error("Failed to query knowledge base. Please try again.");
   }
 }
@@ -68,7 +78,10 @@ export async function summarizeCybersecurityReport(input: SummarizeCybersecurity
   try {
     return await _summarizeCybersecurityReport(input);
   } catch (error) {
-    console.error("Error in summarizeCybersecurityReport:", error);
+    console.error("Error in summarizeCybersecurityReport action:", error);
+    if (error instanceof Error) {
+      throw new Error(error.message);
+    }
     throw new Error("Failed to summarize report. Please try again.");
   }
 }
@@ -77,13 +90,9 @@ export async function analyzeMalware(input: AnalyzeMalwareInput): Promise<Analyz
   try {
     return await _analyzeMalware(input);
   } catch (error) {
-    console.error("Error in analyzeMalware:", error);
-    // It's good practice to log the specific error for server-side debugging.
-    // For the client, provide a generic error message.
+    console.error("Error in analyzeMalware action:", error);
     if (error instanceof Error) {
-        console.error(`analyzeMalware action failed: ${error.message}`);
-    } else {
-        console.error('analyzeMalware action failed with an unknown error.');
+        throw new Error(error.message);
     }
     throw new Error('Failed to analyze for malware. Please check the input and try again.');
   }
@@ -92,13 +101,10 @@ export async function analyzeMalware(input: AnalyzeMalwareInput): Promise<Analyz
 export async function analyzeSystemConfiguration(input: AnalyzeSystemConfigurationInput): Promise<AnalyzeSystemConfigurationOutput> {
   try {
     return await _analyzeSystemConfiguration(input);
-  } catch (error)
- {
-    console.error("Error in analyzeSystemConfiguration:", error);
+  } catch (error) {
+    console.error("Error in analyzeSystemConfiguration action:", error);
     if (error instanceof Error) {
-      console.error(`analyzeSystemConfiguration action failed: ${error.message}`);
-    } else {
-      console.error('analyzeSystemConfiguration action failed with an unknown error.');
+      throw new Error(error.message);
     }
     throw new Error('Failed to analyze system configuration. Please check the input and try again.');
   }
@@ -108,12 +114,11 @@ export async function generateGlobalThreatMapImage(): Promise<GenerateGlobalThre
   try {
     return await _generateGlobalThreatMapImage();
   } catch (error) {
-    console.error("Error in generateGlobalThreatMapImage:", error);
+    console.error("Error in generateGlobalThreatMapImage action:", error);
     if (error instanceof Error) {
-      console.error(`generateGlobalThreatMapImage action failed: ${error.message}`);
-    } else {
-      console.error('generateGlobalThreatMapImage action failed with an unknown error.');
+      throw new Error(error.message);
     }
     throw new Error('Failed to generate global threat map image. Please try again later.');
   }
 }
+
