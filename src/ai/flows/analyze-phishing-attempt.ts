@@ -36,6 +36,15 @@ const prompt = ai.definePrompt({
   name: 'analyzePhishingAttemptPrompt',
   input: {schema: AnalyzePhishingAttemptInputSchema},
   output: {schema: AnalyzePhishingAttemptOutputSchema},
+  config: {
+    safetySettings: [
+      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_NONE' },
+    ],
+  },
   prompt: `You are an AI cybersecurity expert and educator specializing in phishing detection. Analyze the provided content and/or image for potential phishing threats.
 
 {{#if content}}
@@ -61,12 +70,8 @@ Provide a response in JSON format with:
 Example of a good explanation for an identified threat:
 "Threat: Urgent Call to Action - The email creates a false sense of urgency by claiming your account will be suspended. Why it's a red flag: Attackers use this tactic to pressure you into acting quickly without thinking. Guidance: Always be wary of messages demanding immediate action. Independently verify such claims by contacting the service provider through official channels."
 
-Respond strictly in the following JSON format:
-{
-  "riskScore": number,
-  "threatsIdentified": string[],
-  "explanation": string
-}`,
+VERY IMPORTANT: Your entire response MUST be a single, valid JSON object that strictly adheres to the defined output schema. Do not include any text, formatting, or markdown before or after the JSON object.
+`,
 });
 
 const analyzePhishingAttemptFlow = ai.defineFlow(
@@ -77,6 +82,13 @@ const analyzePhishingAttemptFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    return output!;
+    if (!output) {
+      // This error will be caught by the action in src/lib/actions.ts and a generic message shown to user.
+      // Logging here for server-side debugging.
+      console.error('AI model did not return a valid response for analyzePhishingAttempt. This might be due to content filters or an internal error with the model/API.');
+      throw new Error('AI model did not return a valid response. Check server logs.');
+    }
+    return output;
   }
 );
+
