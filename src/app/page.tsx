@@ -96,13 +96,14 @@ const shuffleArray = <T>(array: T[]): T[] => {
 const NUMBER_OF_INSIGHTS_TO_DISPLAY = 3;
 
 const landscapeImages = [
-  { src: 'https://picsum.photos/seed/cyber1/800/450', alt: 'Digital network connections with glowing nodes, conceptualizing global cyber traffic', 'data-ai-hint': 'network traffic' },
-  { src: 'https://picsum.photos/seed/cyber2/800/450', alt: 'Abstract representation of data streams and potential breach points', 'data-ai-hint': 'data breach' },
-  { src: 'https://picsum.photos/seed/cyber3/800/450', alt: 'World map overlay with interconnected lines symbolizing cyber attack vectors and defense', 'data-ai-hint': 'attack vectors' },
-  { src: 'https://picsum.photos/seed/cyber4/800/450', alt: 'Futuristic command center interface displaying threat analytics', 'data-ai-hint': 'threat analytics' },
+  { src: 'https://picsum.photos/seed/cyber1/800/450', alt: 'Conceptual visualization: A global network map highlighting interconnected nodes, representing potential vulnerabilities and attack pathways across digital infrastructures.', 'data-ai-hint': 'network vulnerabilities' },
+  { src: 'https://picsum.photos/seed/cyber2/800/450', alt: 'Conceptual visualization: Abstract streams of data flowing, with some streams being intercepted or corrupted, symbolizing data breach attempts and information theft.', 'data-ai-hint': 'data breach' },
+  { src: 'https://picsum.photos/seed/cyber3/800/450', alt: 'Conceptual visualization: A darkened world map with glowing points of origin for cyber attacks, connected by lines to targeted regions, depicting global threat vectors.', 'data-ai-hint': 'attack vectors' },
+  { src: 'https://picsum.photos/seed/cyber4/800/450', alt: 'Conceptual visualization: A futuristic interface showing complex data analytics and threat intelligence charts, representing advanced cybersecurity monitoring.', 'data-ai-hint': 'threat analytics' },
+  { src: 'https://picsum.photos/seed/cyber5/800/450', alt: 'Conceptual visualization: Code matrix with a shield icon overlay, symbolizing digital defense mechanisms and software security protecting against malware.', 'data-ai-hint': 'software security' },
 ];
 
-const SLIDESHOW_INTERVAL_MS = 60000; // Updated to 1 minute
+const SLIDESHOW_INTERVAL_MS = 60000; 
 
 export default function DashboardPage() {
   const [activeThreatsCount, setActiveThreatsCount] = useState(0);
@@ -170,7 +171,7 @@ export default function DashboardPage() {
     
     const insightsIntervalId = setInterval(() => {
        setGlobalThreatInsights(shuffleArray(allPossibleInsights).slice(0, NUMBER_OF_INSIGHTS_TO_DISPLAY));
-    }, 7000); 
+    }, SLIDESHOW_INTERVAL_MS); // Changed from 7000 to SLIDESHOW_INTERVAL_MS
 
     const dataRefreshIntervalId = setInterval(() => {
       generateRandomData(); 
@@ -188,17 +189,17 @@ export default function DashboardPage() {
 
   const handlePreviousImage = useCallback(() => {
     setCurrentLandscapeIndex(prevIndex => (prevIndex - 1 + landscapeImages.length) % landscapeImages.length);
-    startSlideshowInterval(); // Reset interval on manual change
+    startSlideshowInterval(); 
   }, [startSlideshowInterval]);
 
   const handleNextImage = useCallback(() => {
     setCurrentLandscapeIndex(prevIndex => (prevIndex + 1) % landscapeImages.length);
-    startSlideshowInterval(); // Reset interval on manual change
+    startSlideshowInterval(); 
   }, [startSlideshowInterval]);
 
   const handleDotNavigation = useCallback((index: number) => {
     setCurrentLandscapeIndex(index);
-    startSlideshowInterval(); // Reset interval on manual change
+    startSlideshowInterval(); 
   }, [startSlideshowInterval]);
 
 
@@ -303,7 +304,9 @@ export default function DashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Globe className="h-5 w-5" /> Global Landscape Slideshow</CardTitle>
-          <CardDescription>Illustrative slideshow visualizing different conceptual aspects of the global cyber threat landscape. These are representations, not live data. Click an image to enlarge.</CardDescription>
+          <CardDescription>
+            Conceptual visualizations of the global cyber threat landscape. These images represent various cybersecurity themes like network vulnerabilities, data breaches, and attack vectors, offering a dynamic backdrop to your dashboard. Click an image to enlarge.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="relative group">
@@ -321,6 +324,7 @@ export default function DashboardPage() {
                     src={landscapeImages[currentLandscapeIndex].src}
                     alt={landscapeImages[currentLandscapeIndex].alt}
                     fill 
+                    priority={currentLandscapeIndex === 0} // Prioritize loading the first image
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" 
                     className="rounded-md object-cover animate-fade-in" 
                   />
