@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, History, ListChecks, ShieldAlertIcon, TrendingUp, Globe, Lightbulb, ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from '@/lib/utils';
+import { generateGlobalThreatMapImage } from "@/lib/actions"; // Import the AI action
 
 const sampleEventTemplates = [
   { title: (target?: string) => `Phishing attempt blocked: ${target || 'user@example.com'}`, source: (ip?: string) => `Source IP: ${ip || '198.51.100.12'}` },
@@ -97,8 +98,8 @@ const shuffleArray = <T>(array: T[]): T[] => {
 
 const NUMBER_OF_INSIGHTS_TO_DISPLAY = 3;
 
-const landscapeImages = [
-  { src: 'https://picsum.photos/seed/cyber1/800/450', alt: 'Conceptual visualization: A global network map highlighting interconnected nodes, representing potential vulnerabilities and attack pathways across digital infrastructures.', 'data-ai-hint': 'network vulnerabilities' },
+const defaultStaticLandscapeImages = [
+  { src: 'https://placehold.co/800x450.png', alt: 'Placeholder for dynamic threat map', 'data-ai-hint': 'threat map placeholder' }, // This will be replaced
   { src: 'https://picsum.photos/seed/cyber2/800/450', alt: 'Conceptual visualization: Abstract streams of data flowing, with some streams being intercepted or corrupted, symbolizing data breach attempts and information theft.', 'data-ai-hint': 'data breach' },
   { src: 'https://picsum.photos/seed/cyber3/800/450', alt: 'Conceptual visualization: A darkened world map with glowing points of origin for cyber attacks, connected by lines to targeted regions, depicting global threat vectors.', 'data-ai-hint': 'attack vectors' },
   { src: 'https://picsum.photos/seed/cyber4/800/450', alt: 'Conceptual visualization: A futuristic interface showing complex data analytics and threat intelligence charts, representing advanced cybersecurity monitoring.', 'data-ai-hint': 'threat analytics' },
@@ -116,8 +117,67 @@ export default function DashboardPage() {
   const [scoreImprovement, setScoreImprovement] = useState(0);
   const [recentEvents, setRecentEvents] = useState<DashboardEvent[]>([]);
   const [globalThreatInsights, setGlobalThreatInsights] = useState<string[]>([]);
+  
   const [currentLandscapeIndex, setCurrentLandscapeIndex] = useState(0);
   const slideshowIntervalIdRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [generatedMapData, setGeneratedMapData] = useState<{ url: string | null; alt: string; hint: string }>({
+    url: null, // Start with null, will be updated by AI or placeholders
+    alt: defaultStaticLandscapeImages[0].alt,
+    hint: defaultStaticLandscapeImages[0]['data-ai-hint'],
+  });
+  const [isMapLoading, setIsMapLoading] = useState(true);
+  const [mapError, setMapError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchMap = async () => {
+      setIsMapLoading(true);
+      setMapError(null);
+      try {
+        const result = await generateGlobalThreatMapImage();
+        setGeneratedMapData({
+          url: result.imageDataUri,
+          alt: 'Dynamically generated global cyber threat map by AI.',
+          hint: 'threat map global',
+        });
+      } catch (err) {
+        console.error("Failed to generate threat map:", err);
+        const errorMsg = err instanceof Error ? err.message : "Could not load dynamic map.";
+        setMapError(errorMsg);
+        // Fallback to a specific error placeholder or the original static image
+        setGeneratedMapData({
+          url: 'https://placehold.co/800x450.png?text=Error+Loading+AI+Map',
+          alt: `Error loading AI map: ${errorMsg}. Displaying placeholder.`,
+          hint: 'error map',
+        });
+      } finally {
+        setIsMapLoading(false);
+      }
+    };
+    fetchMap();
+  }, []);
+
+  const dashboardLandscapeImages = useMemo(() => {
+    const images = [...defaultStaticLandscapeImages];
+    if (isMapLoading && !generatedMapData.url) {
+      images[0] = {
+        src: 'https://placehold.co/800x450.png?text=Loading+Threat+Map...',
+        alt: 'Loading dynamic global threat map...',
+        'data-ai-hint': 'loading map',
+      };
+    } else if (generatedMapData.url) { // This covers successful AI generation or error fallback if URL is set
+      images[0] = {
+        src: generatedMapData.url,
+        alt: generatedMapData.alt,
+        'data-ai-hint': generatedMapData.hint,
+      };
+    }
+    // If still loading and generatedMapData.url is null, it uses the loading placeholder.
+    // If error occurred and generatedMapData.url was set to an error placeholder, it's used.
+    // If AI generated successfully, its url is used.
+    return images;
+  }, [generatedMapData, isMapLoading]);
+
 
   const generateRandomData = useCallback(() => {
     setActiveThreatsCount(Math.floor(Math.random() * 25) + 8); 
@@ -163,9 +223,9 @@ export default function DashboardPage() {
       clearInterval(slideshowIntervalIdRef.current);
     }
     slideshowIntervalIdRef.current = setInterval(() => {
-      setCurrentLandscapeIndex(prevIndex => (prevIndex + 1) % landscapeImages.length);
+      setCurrentLandscapeIndex(prevIndex => (prevIndex + 1) % dashboardLandscapeImages.length);
     }, SLIDESHOW_INTERVAL_MS);
-  }, []);
+  }, [dashboardLandscapeImages.length]);
 
   useEffect(() => {
     generateRandomData(); 
@@ -190,14 +250,14 @@ export default function DashboardPage() {
 
 
   const handlePreviousImage = useCallback(() => {
-    setCurrentLandscapeIndex(prevIndex => (prevIndex - 1 + landscapeImages.length) % landscapeImages.length);
+    setCurrentLandscapeIndex(prevIndex => (prevIndex - 1 + dashboardLandscapeImages.length) % dashboardLandscapeImages.length);
     startSlideshowInterval(); 
-  }, [startSlideshowInterval]);
+  }, [startSlideshowInterval, dashboardLandscapeImages.length]);
 
   const handleNextImage = useCallback(() => {
-    setCurrentLandscapeIndex(prevIndex => (prevIndex + 1) % landscapeImages.length);
+    setCurrentLandscapeIndex(prevIndex => (prevIndex + 1) % dashboardLandscapeImages.length);
     startSlideshowInterval(); 
-  }, [startSlideshowInterval]);
+  }, [startSlideshowInterval, dashboardLandscapeImages.length]);
 
   const handleDotNavigation = useCallback((index: number) => {
     setCurrentLandscapeIndex(index);
@@ -307,57 +367,64 @@ export default function DashboardPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Globe className="h-5 w-5" /> Global Landscape Slideshow</CardTitle>
           <CardDescription>
-            Conceptual visualizations of the global cyber threat landscape. These images represent various cybersecurity themes like network vulnerabilities, data breaches, and attack vectors, offering a dynamic backdrop to your dashboard. Click an image to enlarge.
+            Conceptual visualizations of the global cyber threat landscape. The first image is dynamically generated by AI. Click an image to enlarge.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="relative group">
-            <Dialog>
-              <DialogTrigger asChild>
-                <div
-                  className="aspect-video w-full bg-muted rounded-md flex items-center justify-center text-muted-foreground relative overflow-hidden cursor-zoom-in hover:shadow-lg transition-shadow"
-                  role="button"
-                  aria-label="View larger landscape image"
-                  tabIndex={0}
-                  data-ai-hint={landscapeImages[currentLandscapeIndex]['data-ai-hint']}
-                >
-                  <Image
-                    key={landscapeImages[currentLandscapeIndex].src} 
-                    src={landscapeImages[currentLandscapeIndex].src}
-                    alt={landscapeImages[currentLandscapeIndex].alt}
-                    fill 
-                    priority={currentLandscapeIndex === 0}
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" 
-                    className="rounded-md object-cover animate-fade-in" 
-                  />
-                   <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                     <span className="text-white text-lg font-semibold">View Larger</span>
-                   </div>
-                </div>
-              </DialogTrigger>
-              <DialogContent className="max-w-5xl w-[90vw] h-[85vh] p-4 flex flex-col">
-                <DialogHeader className="pb-2 pt-0 px-0">
-                  <DialogTitle>
-                    {landscapeImages[currentLandscapeIndex].alt + " - Enlarged View"}
-                  </DialogTitle>
-                </DialogHeader>
-                <div className="flex-1 relative">
-                  <Image
-                    src={landscapeImages[currentLandscapeIndex].src}
-                    alt={landscapeImages[currentLandscapeIndex].alt + " - Enlarged View"}
-                    fill
-                    sizes="(max-width: 1200px) 80vw, 45vw"
-                    className="rounded-md object-contain"
-                  />
-                </div>
-              </DialogContent>
-            </Dialog>
+            {dashboardLandscapeImages.length > 0 && dashboardLandscapeImages[currentLandscapeIndex] ? (
+              <Dialog>
+                <DialogTrigger asChild>
+                  <div
+                    className="aspect-video w-full bg-muted rounded-md flex items-center justify-center text-muted-foreground relative overflow-hidden cursor-zoom-in hover:shadow-lg transition-shadow"
+                    role="button"
+                    aria-label="View larger landscape image"
+                    tabIndex={0}
+                    data-ai-hint={dashboardLandscapeImages[currentLandscapeIndex]['data-ai-hint']}
+                  >
+                    <Image
+                      key={dashboardLandscapeImages[currentLandscapeIndex].src} 
+                      src={dashboardLandscapeImages[currentLandscapeIndex].src}
+                      alt={dashboardLandscapeImages[currentLandscapeIndex].alt}
+                      fill 
+                      priority={currentLandscapeIndex === 0} // Prioritize the first image (potentially AI generated)
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" 
+                      className="rounded-md object-cover animate-fade-in" 
+                    />
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <span className="text-white text-lg font-semibold">View Larger</span>
+                    </div>
+                  </div>
+                </DialogTrigger>
+                <DialogContent className="max-w-5xl w-[90vw] h-[85vh] p-4 flex flex-col">
+                  <DialogHeader className="pb-2 pt-0 px-0">
+                    <DialogTitle>
+                      {dashboardLandscapeImages[currentLandscapeIndex].alt + " - Enlarged View"}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="flex-1 relative">
+                    <Image
+                      src={dashboardLandscapeImages[currentLandscapeIndex].src}
+                      alt={dashboardLandscapeImages[currentLandscapeIndex].alt + " - Enlarged View"}
+                      fill
+                      sizes="(max-width: 1200px) 80vw, 45vw"
+                      className="rounded-md object-contain"
+                    />
+                  </div>
+                </DialogContent>
+              </Dialog>
+            ) : (
+              <div className="aspect-video w-full bg-muted rounded-md flex items-center justify-center text-muted-foreground">
+                No images to display.
+              </div>
+            )}
             <Button
               variant="outline"
               size="icon"
               className="absolute left-2 top-1/2 -translate-y-1/2 z-10 opacity-50 group-hover:opacity-100 transition-opacity bg-background/70 hover:bg-background"
               onClick={handlePreviousImage}
               aria-label="Previous image"
+              disabled={dashboardLandscapeImages.length <= 1}
             >
               <ChevronLeft className="h-6 w-6" />
             </Button>
@@ -367,11 +434,12 @@ export default function DashboardPage() {
               className="absolute right-2 top-1/2 -translate-y-1/2 z-10 opacity-50 group-hover:opacity-100 transition-opacity bg-background/70 hover:bg-background"
               onClick={handleNextImage}
               aria-label="Next image"
+              disabled={dashboardLandscapeImages.length <= 1}
             >
               <ChevronRight className="h-6 w-6" />
             </Button>
             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 flex space-x-1.5">
-              {landscapeImages.map((_, index) => (
+              {dashboardLandscapeImages.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => handleDotNavigation(index)}
