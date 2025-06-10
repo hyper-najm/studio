@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertTriangle, History, ListChecks, ShieldAlertIcon, TrendingUp, Globe, Lightbulb, ChevronLeft, ChevronRight } from "lucide-react";
+import { AlertTriangle, History, ListChecks, ShieldAlertIcon, TrendingUp, Globe, Lightbulb, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { ActiveThreatsChart } from "@/components/dashboard/active-threats-chart";
 import { SecurityScoreDisplay } from "@/components/dashboard/security-score-display";
@@ -108,6 +108,12 @@ const defaultStaticLandscapeImages = [
 
 const SLIDESHOW_INTERVAL_MS = 60000; 
 
+interface GeneratedMapState {
+  url: string | null;
+  alt: string;
+  hint: string;
+}
+
 export default function DashboardPage() {
   const [activeThreatsCount, setActiveThreatsCount] = useState(0);
   const [threatChange, setThreatChange] = useState(0);
@@ -121,8 +127,8 @@ export default function DashboardPage() {
   const [currentLandscapeIndex, setCurrentLandscapeIndex] = useState(0);
   const slideshowIntervalIdRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [generatedMapData, setGeneratedMapData] = useState<{ url: string | null; alt: string; hint: string }>({
-    url: null, // Start with null, will be updated by AI or placeholders
+  const [generatedMapData, setGeneratedMapData] = useState<GeneratedMapState>({
+    url: null,
     alt: defaultStaticLandscapeImages[0].alt,
     hint: defaultStaticLandscapeImages[0]['data-ai-hint'],
   });
@@ -133,6 +139,11 @@ export default function DashboardPage() {
     const fetchMap = async () => {
       setIsMapLoading(true);
       setMapError(null);
+      setGeneratedMapData({ // Set initial loading state for the map data
+        url: null, // No URL yet
+        alt: 'Loading dynamic global threat map...',
+        hint: 'loading map',
+      });
       try {
         const result = await generateGlobalThreatMapImage();
         setGeneratedMapData({
@@ -144,7 +155,6 @@ export default function DashboardPage() {
         console.error("Failed to generate threat map:", err);
         const errorMsg = err instanceof Error ? err.message : "Could not load dynamic map.";
         setMapError(errorMsg);
-        // Fallback to a specific error placeholder or the original static image
         setGeneratedMapData({
           url: 'https://placehold.co/800x450.png?text=Error+Loading+AI+Map',
           alt: `Error loading AI map: ${errorMsg}. Displaying placeholder.`,
@@ -159,22 +169,20 @@ export default function DashboardPage() {
 
   const dashboardLandscapeImages = useMemo(() => {
     const images = [...defaultStaticLandscapeImages];
-    if (isMapLoading && !generatedMapData.url) {
+    if (isMapLoading && !generatedMapData.url) { // Still initially loading and no data yet
       images[0] = {
         src: 'https://placehold.co/800x450.png?text=Loading+Threat+Map...',
         alt: 'Loading dynamic global threat map...',
         'data-ai-hint': 'loading map',
       };
-    } else if (generatedMapData.url) { // This covers successful AI generation or error fallback if URL is set
+    } else if (generatedMapData.url) { // We have a URL, could be AI-generated or error fallback
       images[0] = {
         src: generatedMapData.url,
         alt: generatedMapData.alt,
         'data-ai-hint': generatedMapData.hint,
       };
     }
-    // If still loading and generatedMapData.url is null, it uses the loading placeholder.
-    // If error occurred and generatedMapData.url was set to an error placeholder, it's used.
-    // If AI generated successfully, its url is used.
+    // If not loading and no URL, it defaults to the original placeholder from defaultStaticLandscapeImages
     return images;
   }, [generatedMapData, isMapLoading]);
 
@@ -382,15 +390,28 @@ export default function DashboardPage() {
                     tabIndex={0}
                     data-ai-hint={dashboardLandscapeImages[currentLandscapeIndex]['data-ai-hint']}
                   >
-                    <Image
-                      key={dashboardLandscapeImages[currentLandscapeIndex].src} 
-                      src={dashboardLandscapeImages[currentLandscapeIndex].src}
-                      alt={dashboardLandscapeImages[currentLandscapeIndex].alt}
-                      fill 
-                      priority={currentLandscapeIndex === 0} // Prioritize the first image (potentially AI generated)
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" 
-                      className="rounded-md object-cover animate-fade-in" 
-                    />
+                    {isMapLoading && currentLandscapeIndex === 0 && !generatedMapData.url ? (
+                       <div className="flex flex-col items-center justify-center text-muted-foreground">
+                          <Loader2 className="h-12 w-12 animate-spin text-primary mb-2" />
+                          <p>Generating AI Threat Map...</p>
+                       </div>
+                    ) : mapError && currentLandscapeIndex === 0 && generatedMapData.url && generatedMapData.url.includes('Error+Loading') ? (
+                       <div className="flex flex-col items-center justify-center text-destructive p-4">
+                          <AlertTriangle className="h-12 w-12 mb-2" />
+                          <p className="text-center">Error loading AI Map.</p>
+                          <p className="text-xs text-center max-w-xs">{mapError}</p>
+                       </div>
+                    ) : (
+                      <Image
+                        key={dashboardLandscapeImages[currentLandscapeIndex].src} 
+                        src={dashboardLandscapeImages[currentLandscapeIndex].src}
+                        alt={dashboardLandscapeImages[currentLandscapeIndex].alt}
+                        fill 
+                        priority={currentLandscapeIndex === 0} 
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" 
+                        className="rounded-md object-cover animate-fade-in" 
+                      />
+                    )}
                     <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <span className="text-white text-lg font-semibold">View Larger</span>
                     </div>
@@ -452,6 +473,9 @@ export default function DashboardPage() {
               ))}
             </div>
           </div>
+           {mapError && currentLandscapeIndex === 0 && (!generatedMapData.url || !generatedMapData.url.includes('Error+Loading')) && (
+            <p className="text-xs text-destructive mt-2 text-center">Note: AI Threat Map generation failed. Showing default placeholder. Error: {mapError}</p>
+          )}
         </CardContent>
       </Card>
       {globalThreatInsights.length > 0 && (
@@ -482,4 +506,6 @@ export default function DashboardPage() {
     </div>
   );
 }
+    
+
     
