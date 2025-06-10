@@ -78,13 +78,28 @@ interface LandscapeImage {
   'data-ai-hint': string;
 }
 
-const defaultStaticLandscapeImages: LandscapeImage[] = [
-  { src: 'https://placehold.co/800x450.png', alt: 'Placeholder for dynamic threat map', 'data-ai-hint': 'threat map placeholder' },
+interface AiMapDetails {
+  status: 'idle' | 'loading' | 'success' | 'error';
+  data: LandscapeImage; 
+  errorMessage: string | null;
+}
+
+const initialAiMapPlaceholder: LandscapeImage = {
+  src: 'https://placehold.co/800x450.png?text=Initializing+AI+Map...',
+  alt: 'Initializing AI Threat Map display...',
+  'data-ai-hint': 'map initializing',
+};
+
+const defaultStaticSlideshowImages: LandscapeImage[] = [
+  // The first image will be replaced by the AI-generated one or its states.
+  // This first entry serves as a structural placeholder if needed before `aiMapDetails.data` is fully set.
+  initialAiMapPlaceholder, 
   { src: 'https://picsum.photos/seed/cyber2/800/450', alt: 'Conceptual visualization: Abstract streams of data flowing, with some streams being intercepted or corrupted, symbolizing data breach attempts and information theft.', 'data-ai-hint': 'data breach' },
   { src: 'https://picsum.photos/seed/cyber3/800/450', alt: 'Conceptual visualization: A darkened world map with glowing points of origin for cyber attacks, connected by lines to targeted regions, depicting global threat vectors.', 'data-ai-hint': 'attack vectors' },
   { src: 'https://picsum.photos/seed/cyber4/800/450', alt: 'Conceptual visualization: A futuristic interface showing complex data analytics and threat intelligence charts, representing advanced cybersecurity monitoring.', 'data-ai-hint': 'threat analytics' },
   { src: 'https://picsum.photos/seed/cyber5/800/450', alt: 'Conceptual visualization: Code matrix with a shield icon overlay, symbolizing digital defense mechanisms and software security protecting against malware.', 'data-ai-hint': 'software security' },
 ];
+
 
 const allPossibleInsights = [
   "Did you know? Phishing remains the most common initial attack vector for cyber breaches globally.",
@@ -111,7 +126,7 @@ const shuffleArray = <T>(array: T[]): T[] => {
 };
 
 const NUMBER_OF_INSIGHTS_TO_DISPLAY = 3;
-const SLIDESHOW_INTERVAL_MS = 60000;
+const SLIDESHOW_INTERVAL_MS = 60000; 
 
 export default function DashboardPage() {
   const [activeThreatsCount, setActiveThreatsCount] = useState(0);
@@ -126,26 +141,34 @@ export default function DashboardPage() {
   const [currentLandscapeIndex, setCurrentLandscapeIndex] = useState(0);
   const slideshowIntervalIdRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [dynamicMapImage, setDynamicMapImage] = useState<LandscapeImage>(defaultStaticLandscapeImages[0]);
-  const [isMapLoading, setIsMapLoading] = useState(true);
-  const [mapError, setMapError] = useState<string | null>(null);
+  const [aiMapDetails, setAiMapDetails] = useState<AiMapDetails>({
+    status: 'idle',
+    data: initialAiMapPlaceholder,
+    errorMessage: null,
+  });
 
   useEffect(() => {
     const fetchMap = async () => {
-      setIsMapLoading(true);
-      setMapError(null);
-      setDynamicMapImage({
-        src: 'https://placehold.co/800x450.png?text=Loading+AI+Map...',
-        alt: 'Loading dynamic global threat map...',
-        'data-ai-hint': 'loading map',
+      setAiMapDetails({
+        status: 'loading',
+        data: {
+          src: 'https://placehold.co/800x450.png?text=Loading+AI+Map...',
+          alt: 'Loading dynamic global threat map...',
+          'data-ai-hint': 'loading map',
+        },
+        errorMessage: null,
       });
       try {
         const result = await generateGlobalThreatMapImage();
         if (result && result.imageDataUri) {
-          setDynamicMapImage({
-            src: result.imageDataUri,
-            alt: 'Dynamically generated global cyber threat map by AI.',
-            'data-ai-hint': 'threat map global ai',
+          setAiMapDetails({
+            status: 'success',
+            data: {
+              src: result.imageDataUri,
+              alt: 'Dynamically generated global cyber threat map by AI.',
+              'data-ai-hint': 'threat map global ai',
+            },
+            errorMessage: null,
           });
         } else {
           throw new Error("AI map generation returned no image data.");
@@ -153,24 +176,24 @@ export default function DashboardPage() {
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : "Could not load dynamic map.";
         console.error("Failed to generate/load threat map:", err);
-        setMapError(errorMsg);
-        setDynamicMapImage({
-          src: `https://placehold.co/800x450.png?text=Error+Loading+AI+Map`,
-          alt: `Error generating AI map: ${errorMsg}. Using placeholder.`,
-          'data-ai-hint': 'error map generation',
+        setAiMapDetails({
+          status: 'error',
+          data: {
+            src: `https://placehold.co/800x450.png?text=Error+Loading+AI+Map`,
+            alt: `Error generating AI map: ${errorMsg}. Using placeholder.`,
+            'data-ai-hint': 'error map generation',
+          },
+          errorMessage: errorMsg,
         });
-      } finally {
-        setIsMapLoading(false);
       }
     };
     fetchMap();
   }, []);
 
   const dashboardLandscapeImages = useMemo(() => {
-    const images = [...defaultStaticLandscapeImages];
-    images[0] = dynamicMapImage;
-    return images;
-  }, [dynamicMapImage]);
+    // The first image is dynamic, the rest are static from the original default list, skipping its first element.
+    return [aiMapDetails.data, ...defaultStaticSlideshowImages.slice(1)];
+  }, [aiMapDetails.data]);
 
 
   const generateRandomData = useCallback(() => {
@@ -375,18 +398,18 @@ export default function DashboardPage() {
                     aria-label="View larger landscape image"
                     tabIndex={0}
                   >
-                    {currentLandscapeIndex === 0 && isMapLoading ? (
+                    {currentLandscapeIndex === 0 && aiMapDetails.status === 'loading' ? (
                        <div className="flex flex-col items-center justify-center text-muted-foreground h-full">
                           <Loader2 className="h-12 w-12 animate-spin text-primary mb-2" />
                           <p>Generating AI Threat Map...</p>
                        </div>
-                    ) : currentLandscapeIndex === 0 && mapError ? (
+                    ) : currentLandscapeIndex === 0 && aiMapDetails.status === 'error' ? (
                        <div className="flex flex-col items-center justify-center text-destructive p-4 h-full">
                           <AlertTriangle className="h-12 w-12 mb-2" />
                           <p className="text-center">Error loading AI Map.</p>
-                          <p className="text-xs text-center max-w-xs">{mapError}</p>
+                          {aiMapDetails.errorMessage && <p className="text-xs text-center max-w-xs">{aiMapDetails.errorMessage}</p>}
                        </div>
-                    ) : (
+                    ) : dashboardLandscapeImages[currentLandscapeIndex] && dashboardLandscapeImages[currentLandscapeIndex].src ? (
                       <Image
                         key={dashboardLandscapeImages[currentLandscapeIndex].src} 
                         src={dashboardLandscapeImages[currentLandscapeIndex].src}
@@ -397,26 +420,34 @@ export default function DashboardPage() {
                         className="rounded-md object-cover animate-fade-in" 
                         data-ai-hint={dashboardLandscapeImages[currentLandscapeIndex]['data-ai-hint']}
                       />
+                    ) : (
+                       <div className="aspect-video w-full bg-muted rounded-md flex items-center justify-center text-muted-foreground">
+                          Image data unavailable for current slide.
+                       </div>
                     )}
-                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <span className="text-white text-lg font-semibold">View Larger</span>
-                    </div>
+                    {!(currentLandscapeIndex === 0 && (aiMapDetails.status === 'loading' || aiMapDetails.status === 'error')) && dashboardLandscapeImages[currentLandscapeIndex] && dashboardLandscapeImages[currentLandscapeIndex].src && (
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span className="text-white text-lg font-semibold">View Larger</span>
+                      </div>
+                    )}
                   </div>
                 </DialogTrigger>
                 <DialogContent className="max-w-5xl w-[90vw] h-[85vh] p-4 flex flex-col">
                   <DialogHeader className="pb-2 pt-0 px-0">
                     <DialogTitle>
-                      {dashboardLandscapeImages[currentLandscapeIndex].alt + " - Enlarged View"}
+                      {dashboardLandscapeImages[currentLandscapeIndex]?.alt + " - Enlarged View"}
                     </DialogTitle>
                   </DialogHeader>
                   <div className="flex-1 relative">
-                    <Image
-                      src={dashboardLandscapeImages[currentLandscapeIndex].src}
-                      alt={dashboardLandscapeImages[currentLandscapeIndex].alt + " - Enlarged View"}
-                      fill
-                      sizes="(max-width: 1200px) 80vw, 45vw"
-                      className="rounded-md object-contain"
-                    />
+                    {dashboardLandscapeImages[currentLandscapeIndex]?.src && (
+                        <Image
+                        src={dashboardLandscapeImages[currentLandscapeIndex].src}
+                        alt={dashboardLandscapeImages[currentLandscapeIndex].alt + " - Enlarged View"}
+                        fill
+                        sizes="(max-width: 1200px) 80vw, 45vw"
+                        className="rounded-md object-contain"
+                        />
+                    )}
                   </div>
                 </DialogContent>
               </Dialog>
@@ -459,8 +490,8 @@ export default function DashboardPage() {
               ))}
             </div>
           </div>
-           {currentLandscapeIndex === 0 && mapError && (
-            <p className="text-xs text-destructive mt-2 text-center">AI Threat Map generation failed. Error: {mapError}</p>
+           {aiMapDetails.status === 'error' && aiMapDetails.errorMessage && (
+            <p className="text-xs text-destructive mt-2 text-center">AI Threat Map generation failed. Error: {aiMapDetails.errorMessage}</p>
           )}
         </CardContent>
       </Card>
@@ -495,3 +526,4 @@ export default function DashboardPage() {
     
 
     
+
