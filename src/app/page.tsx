@@ -91,9 +91,8 @@ const initialAiMapPlaceholder: LandscapeImage = {
 };
 
 const defaultStaticSlideshowImages: LandscapeImage[] = [
-  // The first image will be replaced by the AI-generated one or its states.
-  // This first entry serves as a structural placeholder if needed before `aiMapDetails.data` is fully set.
-  initialAiMapPlaceholder, 
+  // Note: The first actual image for the slideshow will be managed by aiMapDetails.data.
+  // These are the subsequent static images.
   { src: 'https://picsum.photos/seed/cyber2/800/450', alt: 'Conceptual visualization: Abstract streams of data flowing, with some streams being intercepted or corrupted, symbolizing data breach attempts and information theft.', 'data-ai-hint': 'data breach' },
   { src: 'https://picsum.photos/seed/cyber3/800/450', alt: 'Conceptual visualization: A darkened world map with glowing points of origin for cyber attacks, connected by lines to targeted regions, depicting global threat vectors.', 'data-ai-hint': 'attack vectors' },
   { src: 'https://picsum.photos/seed/cyber4/800/450', alt: 'Conceptual visualization: A futuristic interface showing complex data analytics and threat intelligence charts, representing advanced cybersecurity monitoring.', 'data-ai-hint': 'threat analytics' },
@@ -147,6 +146,10 @@ export default function DashboardPage() {
     errorMessage: null,
   });
 
+  const dashboardLandscapeImages = useMemo(() => {
+    return [aiMapDetails.data, ...defaultStaticSlideshowImages];
+  }, [aiMapDetails.data]);
+
   useEffect(() => {
     const fetchMap = async () => {
       setAiMapDetails({
@@ -189,11 +192,6 @@ export default function DashboardPage() {
     };
     fetchMap();
   }, []);
-
-  const dashboardLandscapeImages = useMemo(() => {
-    // The first image is dynamic, the rest are static from the original default list, skipping its first element.
-    return [aiMapDetails.data, ...defaultStaticSlideshowImages.slice(1)];
-  }, [aiMapDetails.data]);
 
 
   const generateRandomData = useCallback(() => {
@@ -435,14 +433,14 @@ export default function DashboardPage() {
                 <DialogContent className="max-w-5xl w-[90vw] h-[85vh] p-4 flex flex-col">
                   <DialogHeader className="pb-2 pt-0 px-0">
                     <DialogTitle>
-                      {dashboardLandscapeImages[currentLandscapeIndex]?.alt + " - Enlarged View"}
+                      {(dashboardLandscapeImages[currentLandscapeIndex]?.alt || "Image") + " - Enlarged View"}
                     </DialogTitle>
                   </DialogHeader>
                   <div className="flex-1 relative">
                     {dashboardLandscapeImages[currentLandscapeIndex]?.src && (
                         <Image
                         src={dashboardLandscapeImages[currentLandscapeIndex].src}
-                        alt={dashboardLandscapeImages[currentLandscapeIndex].alt + " - Enlarged View"}
+                        alt={(dashboardLandscapeImages[currentLandscapeIndex].alt || "Enlarged image") + " - Enlarged View"}
                         fill
                         sizes="(max-width: 1200px) 80vw, 45vw"
                         className="rounded-md object-contain"
@@ -490,7 +488,7 @@ export default function DashboardPage() {
               ))}
             </div>
           </div>
-           {aiMapDetails.status === 'error' && aiMapDetails.errorMessage && (
+           {currentLandscapeIndex === 0 && aiMapDetails.status === 'error' && aiMapDetails.errorMessage && (
             <p className="text-xs text-destructive mt-2 text-center">AI Threat Map generation failed. Error: {aiMapDetails.errorMessage}</p>
           )}
         </CardContent>
@@ -526,4 +524,3 @@ export default function DashboardPage() {
     
 
     
-
