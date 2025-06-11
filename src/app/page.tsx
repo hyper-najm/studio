@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from '@/lib/utils';
-import { generateGlobalThreatMapImage } from "@/lib/actions";
+// import { generateGlobalThreatMapImage } from "@/lib/actions"; // Temporarily commented out
 
 const sampleEventTemplates = [
   { title: (target?: string) => `Phishing attempt blocked: ${target || 'user@example.com'}`, source: (ip?: string) => `Source IP: ${ip || '198.51.100.12'}` },
@@ -80,19 +80,17 @@ interface LandscapeImage {
 
 interface AiMapDetails {
   status: 'idle' | 'loading' | 'success' | 'error';
-  data: LandscapeImage; 
+  data: LandscapeImage;
   errorMessage: string | null;
 }
 
 const initialAiMapPlaceholder: LandscapeImage = {
-  src: 'https://placehold.co/800x450.png?text=Initializing+AI+Map...',
-  alt: 'Initializing AI Threat Map display...',
-  'data-ai-hint': 'map initializing',
+  src: 'https://placehold.co/800x450.png?text=Threat+Map+Placeholder', 
+  alt: 'Global threat map placeholder',
+  'data-ai-hint': 'map placeholder',
 };
 
 const defaultStaticSlideshowImages: LandscapeImage[] = [
-  // Note: The first actual image for the slideshow will be managed by aiMapDetails.data.
-  // These are the subsequent static images.
   { src: 'https://picsum.photos/seed/cyber2/800/450', alt: 'Conceptual visualization: Abstract streams of data flowing, with some streams being intercepted or corrupted, symbolizing data breach attempts and information theft.', 'data-ai-hint': 'data breach' },
   { src: 'https://picsum.photos/seed/cyber3/800/450', alt: 'Conceptual visualization: A darkened world map with glowing points of origin for cyber attacks, connected by lines to targeted regions, depicting global threat vectors.', 'data-ai-hint': 'attack vectors' },
   { src: 'https://picsum.photos/seed/cyber4/800/450', alt: 'Conceptual visualization: A futuristic interface showing complex data analytics and threat intelligence charts, representing advanced cybersecurity monitoring.', 'data-ai-hint': 'threat analytics' },
@@ -125,7 +123,7 @@ const shuffleArray = <T>(array: T[]): T[] => {
 };
 
 const NUMBER_OF_INSIGHTS_TO_DISPLAY = 3;
-const SLIDESHOW_INTERVAL_MS = 60000; 
+const SLIDESHOW_INTERVAL_MS = 60000;
 
 export default function DashboardPage() {
   const [activeThreatsCount, setActiveThreatsCount] = useState(0);
@@ -136,12 +134,13 @@ export default function DashboardPage() {
   const [scoreImprovement, setScoreImprovement] = useState(0);
   const [recentEvents, setRecentEvents] = useState<DashboardEvent[]>([]);
   const [globalThreatInsights, setGlobalThreatInsights] = useState<string[]>([]);
-  
+
   const [currentLandscapeIndex, setCurrentLandscapeIndex] = useState(0);
   const slideshowIntervalIdRef = useRef<NodeJS.Timeout | null>(null);
 
+  // AI map state, initialized to a static placeholder for stability diagnosis
   const [aiMapDetails, setAiMapDetails] = useState<AiMapDetails>({
-    status: 'idle',
+    status: 'idle', 
     data: initialAiMapPlaceholder,
     errorMessage: null,
   });
@@ -150,55 +149,53 @@ export default function DashboardPage() {
     return [aiMapDetails.data, ...defaultStaticSlideshowImages];
   }, [aiMapDetails.data]);
 
-  useEffect(() => {
-    const fetchMap = async () => {
-      setAiMapDetails({
-        status: 'loading',
-        data: {
-          src: 'https://placehold.co/800x450.png?text=Loading+AI+Map...',
-          alt: 'Loading dynamic global threat map...',
-          'data-ai-hint': 'loading map',
-        },
-        errorMessage: null,
-      });
-      try {
-        const result = await generateGlobalThreatMapImage();
-        if (result && result.imageDataUri) {
-          setAiMapDetails({
-            status: 'success',
-            data: {
-              src: result.imageDataUri,
-              alt: 'Dynamically generated global cyber threat map by AI.',
-              'data-ai-hint': 'threat map global ai',
-            },
-            errorMessage: null,
-          });
-        } else {
-          throw new Error("AI map generation returned no image data.");
-        }
-      } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : "Could not load dynamic map.";
-        console.error("Failed to generate/load threat map:", err);
-        setAiMapDetails({
-          status: 'error',
-          data: {
-            src: `https://placehold.co/800x450.png?text=Error+Loading+AI+Map`,
-            alt: `Error generating AI map: ${errorMsg}. Using placeholder.`,
-            'data-ai-hint': 'error map generation',
-          },
-          errorMessage: errorMsg,
-        });
-      }
-    };
-    fetchMap();
-  }, []);
+
+  // const fetchMap = useCallback(async () => {
+  //   setAiMapDetails({
+  //     status: 'loading',
+  //     data: {
+  //       src: 'https://placehold.co/800x450.png?text=Loading+AI+Map...',
+  //       alt: 'Loading dynamic global threat map...',
+  //       'data-ai-hint': 'loading map',
+  //     },
+  //     errorMessage: null,
+  //   });
+  //   try {
+  //     const result = await generateGlobalThreatMapImage();
+  //     if (result && result.imageDataUri) {
+  //       setAiMapDetails({
+  //         status: 'success',
+  //         data: {
+  //           src: result.imageDataUri,
+  //           alt: 'Dynamically generated global cyber threat map by AI.',
+  //           'data-ai-hint': 'threat map global ai',
+  //         },
+  //         errorMessage: null,
+  //       });
+  //     } else {
+  //       throw new Error("AI map generation returned no image data.");
+  //     }
+  //   } catch (err) {
+  //     const errorMsg = err instanceof Error ? err.message : "Could not load dynamic map.";
+  //     console.error("Failed to generate/load threat map:", err);
+  //     setAiMapDetails({
+  //       status: 'error',
+  //       data: {
+  //         src: `https://placehold.co/800x450.png?text=Error+Loading+AI+Map`,
+  //         alt: `Error generating AI map: ${errorMsg}. Using placeholder.`,
+  //         'data-ai-hint': 'error map generation',
+  //       },
+  //       errorMessage: errorMsg,
+  //     });
+  //   }
+  // }, []);
 
 
   const generateRandomData = useCallback(() => {
-    setActiveThreatsCount(Math.floor(Math.random() * 25) + 8); 
-    setThreatChange(Math.floor(Math.random() * 11) - 5); 
+    setActiveThreatsCount(Math.floor(Math.random() * 25) + 8);
+    setThreatChange(Math.floor(Math.random() * 11) - 5);
 
-    const numVulsToShow = Math.floor(Math.random() * 4) + 4; 
+    const numVulsToShow = Math.floor(Math.random() * 4) + 4;
     const shuffledVuls = [...sampleVulnerabilitiesList].sort(() => 0.5 - Math.random());
     const selectedVuls = shuffledVuls.slice(0, numVulsToShow).map(v => ({
         id: v.id,
@@ -209,17 +206,17 @@ export default function DashboardPage() {
     setVulnerabilities(selectedVuls);
     setCriticalVulnerabilityCount(selectedVuls.filter(v => v.severity === 'Critical').length);
 
-    setSecurityScore(Math.floor(Math.random() * 36) + 60); 
-    setScoreImprovement(Math.floor(Math.random() * 7) + 1); 
+    setSecurityScore(Math.floor(Math.random() * 36) + 60);
+    setScoreImprovement(Math.floor(Math.random() * 7) + 1);
 
     const generatedEvents: DashboardEvent[] = sampleEventTemplates
       .sort(() => 0.5 - Math.random())
-      .slice(0, Math.floor(Math.random() * 3) + 4) 
+      .slice(0, Math.floor(Math.random() * 3) + 4)
       .map((template, i) => {
         const randomArg = [getRandomIp(), `user${Math.floor(Math.random()*100)}`, `file_${Math.random().toString(36).substring(7)}.sh`, `policy${i+1}`, `CVE-2024-${Math.floor(Math.random()*1000)+2000}`][Math.floor(Math.random()*5)];
         const title = typeof template.title === 'function' ? template.title(randomArg) : 'Generic Event Title';
         const source = typeof template.source === 'function' ? template.source(randomArg) : 'Generic Source';
-        const timestamp = getRandomPastDate(24 * (i + 1) * 0.5 ); 
+        const timestamp = getRandomPastDate(24 * (i + 1) * 0.5 );
         return {
           id: `event-${i}-${Date.now()}`,
           title,
@@ -229,7 +226,7 @@ export default function DashboardPage() {
         };
       });
     setRecentEvents(generatedEvents.sort((a,b) => b.timestamp.getTime() - a.timestamp.getTime()));
-    
+
     setGlobalThreatInsights(shuffleArray(allPossibleInsights).slice(0, NUMBER_OF_INSIGHTS_TO_DISPLAY));
   }, []);
 
@@ -243,16 +240,19 @@ export default function DashboardPage() {
   }, [dashboardLandscapeImages.length]);
 
   useEffect(() => {
-    generateRandomData(); 
+    // if (aiMapDetails.status === 'idle') { // Only fetch if idle, to avoid re-fetching on other state changes
+    //   fetchMap(); // Call fetchMap only if not already loading/success/error
+    // } // Temporarily disabled
+    generateRandomData();
     startSlideshowInterval();
-    
+
     const insightsIntervalId = setInterval(() => {
        setGlobalThreatInsights(shuffleArray(allPossibleInsights).slice(0, NUMBER_OF_INSIGHTS_TO_DISPLAY));
     }, SLIDESHOW_INTERVAL_MS);
 
     const dataRefreshIntervalId = setInterval(() => {
-      generateRandomData(); 
-    }, 30000); 
+      generateRandomData();
+    }, 30000);
 
     return () => {
       if (slideshowIntervalIdRef.current) {
@@ -261,22 +261,23 @@ export default function DashboardPage() {
       clearInterval(insightsIntervalId);
       clearInterval(dataRefreshIntervalId);
     };
+  // }, [fetchMap, generateRandomData, startSlideshowInterval, aiMapDetails.status]); // Removed fetchMap
   }, [generateRandomData, startSlideshowInterval]);
 
 
   const handlePreviousImage = useCallback(() => {
     setCurrentLandscapeIndex(prevIndex => (prevIndex - 1 + dashboardLandscapeImages.length) % dashboardLandscapeImages.length);
-    startSlideshowInterval(); 
+    startSlideshowInterval();
   }, [startSlideshowInterval, dashboardLandscapeImages.length]);
 
   const handleNextImage = useCallback(() => {
     setCurrentLandscapeIndex(prevIndex => (prevIndex + 1) % dashboardLandscapeImages.length);
-    startSlideshowInterval(); 
+    startSlideshowInterval();
   }, [startSlideshowInterval, dashboardLandscapeImages.length]);
 
   const handleDotNavigation = useCallback((index: number) => {
     setCurrentLandscapeIndex(index);
-    startSlideshowInterval(); 
+    startSlideshowInterval();
   }, [startSlideshowInterval]);
 
 
@@ -289,7 +290,7 @@ export default function DashboardPage() {
       default: return 'text-muted-foreground';
     }
   };
-  
+
   const threatChangeText = threatChange >= 0 ? `+${threatChange}` : threatChange.toString();
   const threatChangeColor = threatChange > 0 ? "text-green-500" : threatChange < 0 ? "text-destructive" : "text-muted-foreground";
 
@@ -326,7 +327,7 @@ export default function DashboardPage() {
              <ul className="mt-4 space-y-1 text-sm max-h-[120px] overflow-y-auto pr-1">
               {vulnerabilities.length > 0 ? vulnerabilities.map(vul => (
                 <li key={vul.id} className="flex items-start justify-between group">
-                  <span className="truncate pr-2 cursor-default" title={`${vul.description}${vul.note ? ` (${vul.note})` : ''}`}>{vul.id}</span> 
+                  <span className="truncate pr-2 cursor-default" title={`${vul.description}${vul.note ? ` (${vul.note})` : ''}`}>{vul.id}</span>
                   <span className={getSeverityClass(vul.severity)}>{vul.severity}</span>
                 </li>
               )) : <p className="text-xs text-muted-foreground">No new vulnerabilities listed.</p>}
@@ -382,12 +383,13 @@ export default function DashboardPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Globe className="h-5 w-5" /> Global Landscape Slideshow</CardTitle>
           <CardDescription>
-            Conceptual visualizations of the global cyber threat landscape. The first image is dynamically generated by AI. Click an image to enlarge.
+            Conceptual visualizations of the global cyber threat landscape. The first image is currently a static placeholder. Click an image to enlarge.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="relative group">
-            {dashboardLandscapeImages.length > 0 && dashboardLandscapeImages[currentLandscapeIndex] ? (
+            {/* Simplified rendering, assuming aiMapDetails.data always has a valid structure */}
+            {dashboardLandscapeImages.length > 0 && dashboardLandscapeImages[currentLandscapeIndex] && dashboardLandscapeImages[currentLandscapeIndex].src ? (
               <Dialog>
                 <DialogTrigger asChild>
                   <div
@@ -396,34 +398,19 @@ export default function DashboardPage() {
                     aria-label="View larger landscape image"
                     tabIndex={0}
                   >
-                    {currentLandscapeIndex === 0 && aiMapDetails.status === 'loading' ? (
-                       <div className="flex flex-col items-center justify-center text-muted-foreground h-full">
-                          <Loader2 className="h-12 w-12 animate-spin text-primary mb-2" />
-                          <p>Generating AI Threat Map...</p>
-                       </div>
-                    ) : currentLandscapeIndex === 0 && aiMapDetails.status === 'error' ? (
-                       <div className="flex flex-col items-center justify-center text-destructive p-4 h-full">
-                          <AlertTriangle className="h-12 w-12 mb-2" />
-                          <p className="text-center">Error loading AI Map.</p>
-                          {aiMapDetails.errorMessage && <p className="text-xs text-center max-w-xs">{aiMapDetails.errorMessage}</p>}
-                       </div>
-                    ) : dashboardLandscapeImages[currentLandscapeIndex] && dashboardLandscapeImages[currentLandscapeIndex].src ? (
+                    {/* Always render the image from dashboardLandscapeImages, which uses aiMapDetails.data for the first slide */}
                       <Image
-                        key={dashboardLandscapeImages[currentLandscapeIndex].src} 
+                        key={dashboardLandscapeImages[currentLandscapeIndex].src}
                         src={dashboardLandscapeImages[currentLandscapeIndex].src}
                         alt={dashboardLandscapeImages[currentLandscapeIndex].alt}
-                        fill 
-                        priority={currentLandscapeIndex === 0} 
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" 
-                        className="rounded-md object-cover animate-fade-in" 
+                        fill
+                        priority={currentLandscapeIndex === 0 && aiMapDetails.status === 'success'}
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className="rounded-md object-cover animate-fade-in"
                         data-ai-hint={dashboardLandscapeImages[currentLandscapeIndex]['data-ai-hint']}
                       />
-                    ) : (
-                       <div className="aspect-video w-full bg-muted rounded-md flex items-center justify-center text-muted-foreground">
-                          Image data unavailable for current slide.
-                       </div>
-                    )}
-                    {!(currentLandscapeIndex === 0 && (aiMapDetails.status === 'loading' || aiMapDetails.status === 'error')) && dashboardLandscapeImages[currentLandscapeIndex] && dashboardLandscapeImages[currentLandscapeIndex].src && (
+                    {/* Group hover effect for 'View Larger' text */}
+                    {dashboardLandscapeImages[currentLandscapeIndex].src && (
                       <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <span className="text-white text-lg font-semibold">View Larger</span>
                       </div>
@@ -488,9 +475,11 @@ export default function DashboardPage() {
               ))}
             </div>
           </div>
+           {/* Error message for AI map (currently static placeholder, so error won't show unless manually set)
            {currentLandscapeIndex === 0 && aiMapDetails.status === 'error' && aiMapDetails.errorMessage && (
             <p className="text-xs text-destructive mt-2 text-center">AI Threat Map generation failed. Error: {aiMapDetails.errorMessage}</p>
           )}
+          */}
         </CardContent>
       </Card>
       {globalThreatInsights.length > 0 && (
@@ -521,6 +510,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-    
-
-    
