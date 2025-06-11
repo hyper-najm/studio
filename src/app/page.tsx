@@ -152,20 +152,26 @@ export default function DashboardPage() {
   const slideshowIntervalIdRef = useRef<NodeJS.Timeout | null>(null);
 
   const [aiMapDetails, setAiMapDetails] = useState<AiMapDetails>({
-    status: 'idle',
+    status: 'idle', // Start with idle, meaning initial placeholder
     data: initialAiMapPlaceholder,
     errorMessage: null,
   });
 
   const fetchMap = useCallback(async () => {
-    setAiMapDetails({
+    console.log("fetchMap called. Current aiMapDetails status:", aiMapDetails.status);
+    // Set to loading state immediately
+    setAiMapDetails(prev => ({
+      ...prev, // Keep previous data for a brief moment if desired, or use loading placeholder
       status: 'loading',
-      data: loadingAiMapPlaceholder,
+      data: loadingAiMapPlaceholder, // Explicitly set loading placeholder image
       errorMessage: null,
-    });
+    }));
+    console.log("Set to loading. New aiMapDetails status:", 'loading');
 
     try {
       const result = await generateGlobalThreatMapImage();
+      console.log("generateGlobalThreatMapImage result:", result);
+
       if (result && result.imageDataUri) {
         setAiMapDetails({
           status: 'success',
@@ -176,20 +182,22 @@ export default function DashboardPage() {
           },
           errorMessage: null,
         });
+        console.log("Set to success. imageDataUri:", result.imageDataUri);
       } else {
-        console.error("AI map generation returned no image data.");
+        const errorMsg = "AI map generation returned no image data or invalid response structure.";
+        console.error(errorMsg, "Result:", result);
         setAiMapDetails({
           status: 'error',
           data: { 
             ...errorAiMapPlaceholder,
             alt: 'AI map generation returned no image data. Using placeholder.'
           },
-          errorMessage: "AI map generation returned no image data.",
+          errorMessage: errorMsg,
         });
       }
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : "Could not load dynamic map.";
-      console.error("Failed to generate/load threat map:", err);
+      const errorMsg = err instanceof Error ? err.message : "Could not load dynamic map due to an unknown error.";
+      console.error("Failed to generate/load threat map in fetchMap:", err);
       setAiMapDetails({
         status: 'error',
         data: { 
@@ -199,7 +207,7 @@ export default function DashboardPage() {
         errorMessage: errorMsg,
       });
     }
-  }, []); 
+  }, []);  // Removed aiMapDetails.status from dependencies to prevent re-triggering fetchMap on its own status change
 
   const generateRandomData = useCallback(() => {
     setActiveThreatsCount(Math.floor(Math.random() * 25) + 8);
@@ -242,14 +250,16 @@ export default function DashboardPage() {
 
 
   const dashboardLandscapeImages = useMemo(() => {
+    // The first image is always from aiMapDetails.data, the rest are static.
     return [aiMapDetails.data, ...defaultStaticSlideshowImages];
   }, [aiMapDetails.data]);
+
 
   const startSlideshowInterval = useCallback(() => {
     if (slideshowIntervalIdRef.current) {
       clearInterval(slideshowIntervalIdRef.current);
     }
-    if (dashboardLandscapeImages.length > 1) { // Only start if there's more than one image
+    if (dashboardLandscapeImages.length > 1) { 
         slideshowIntervalIdRef.current = setInterval(() => {
         setCurrentLandscapeIndex(prevIndex => (prevIndex + 1) % dashboardLandscapeImages.length);
         }, SLIDESHOW_INTERVAL_MS);
@@ -257,43 +267,48 @@ export default function DashboardPage() {
   }, [dashboardLandscapeImages.length]);
 
   useEffect(() => {
+    console.log("DashboardPage mounted. Calling fetchMap and generateRandomData.");
     fetchMap();
     generateRandomData();
-  }, [fetchMap, generateRandomData]); // Fetch map and generate data on mount
+    // Slideshow interval is managed in a separate effect that depends on dashboardLandscapeImages.length
+  }, [fetchMap, generateRandomData]);
 
-  useEffect(() => { // Separate effect for slideshow and insights interval management
+  useEffect(() => { 
+    console.log("Slideshow images updated or interval logic changed. Restarting interval. Image count:", dashboardLandscapeImages.length);
     startSlideshowInterval();
+    
     const insightsIntervalId = setInterval(() => {
        setGlobalThreatInsights(shuffleArray(allPossibleInsights).slice(0, NUMBER_OF_INSIGHTS_TO_DISPLAY));
-    }, SLIDESHOW_INTERVAL_MS * 2); // Make insights refresh less frequent
+    }, SLIDESHOW_INTERVAL_MS * 2); 
 
-    const dataRefreshIntervalId = setInterval(() => { // Refresh dashboard data periodically
+    const dataRefreshIntervalId = setInterval(() => { 
       generateRandomData();
     }, 30000);
 
     return () => {
+      console.log("DashboardPage unmounting. Clearing intervals.");
       if (slideshowIntervalIdRef.current) {
         clearInterval(slideshowIntervalIdRef.current);
       }
       clearInterval(insightsIntervalId);
       clearInterval(dataRefreshIntervalId);
     };
-  }, [startSlideshowInterval, generateRandomData]); // Rerun if startSlideshowInterval or generateRandomData changes
+  }, [startSlideshowInterval, generateRandomData, dashboardLandscapeImages.length]); // Re-run if startSlideshowInterval, generateRandomData, or images length changes
 
 
   const handlePreviousImage = useCallback(() => {
     setCurrentLandscapeIndex(prevIndex => (prevIndex - 1 + dashboardLandscapeImages.length) % dashboardLandscapeImages.length);
-    startSlideshowInterval(); // Reset timer on manual navigation
+    startSlideshowInterval(); 
   }, [dashboardLandscapeImages.length, startSlideshowInterval]);
 
   const handleNextImage = useCallback(() => {
     setCurrentLandscapeIndex(prevIndex => (prevIndex + 1) % dashboardLandscapeImages.length);
-    startSlideshowInterval(); // Reset timer on manual navigation
+    startSlideshowInterval(); 
   }, [dashboardLandscapeImages.length, startSlideshowInterval]);
 
   const handleDotNavigation = useCallback((index: number) => {
     setCurrentLandscapeIndex(index);
-    startSlideshowInterval(); // Reset timer on manual navigation
+    startSlideshowInterval(); 
   }, [startSlideshowInterval]);
 
 
@@ -311,6 +326,9 @@ export default function DashboardPage() {
   const threatChangeColor = threatChange > 0 ? "text-green-500" : threatChange < 0 ? "text-destructive" : "text-muted-foreground";
 
   const currentImageToDisplay = dashboardLandscapeImages[currentLandscapeIndex];
+  // Log current state for debugging
+  console.log("Rendering DashboardPage. aiMapDetails:", aiMapDetails, "currentLandscapeIndex:", currentLandscapeIndex, "currentImageToDisplay:", currentImageToDisplay);
+
 
   return (
     <div className="space-y-6">
@@ -408,7 +426,7 @@ export default function DashboardPage() {
             <Dialog>
               <DialogTrigger asChild disabled={
                 (currentLandscapeIndex === 0 && (aiMapDetails.status === 'loading' || aiMapDetails.status === 'error')) ||
-                !currentImageToDisplay || !currentImageToDisplay.src
+                !currentImageToDisplay || !currentImageToDisplay.src || currentImageToDisplay.src.includes("placehold.co/800x450.png?text=Error") // Also disable if it's an error placeholder
               }>
                 <div
                   className="aspect-video w-full bg-muted rounded-md flex items-center justify-center text-muted-foreground relative overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
@@ -427,8 +445,8 @@ export default function DashboardPage() {
                       <AlertTriangle className="h-12 w-12 mb-2" />
                       <p className="font-semibold">Error Loading AI Map</p>
                       {aiMapDetails.errorMessage && <p className="text-xs mt-1">{aiMapDetails.errorMessage}</p>}
-                       <Image // Fallback to error placeholder image
-                        key={errorAiMapPlaceholder.src}
+                       <Image 
+                        key={errorAiMapPlaceholder.src} // Use a distinct key for this error fallback
                         src={errorAiMapPlaceholder.src}
                         alt={errorAiMapPlaceholder.alt}
                         fill
@@ -438,10 +456,11 @@ export default function DashboardPage() {
                       />
                     </div>
                   )}
-                  {((currentLandscapeIndex === 0 && (aiMapDetails.status === 'success' || aiMapDetails.status === 'idle')) || currentLandscapeIndex !== 0) && currentImageToDisplay && currentImageToDisplay.src && (
+                   {/* Render Image if not loading/error for first slide, or for any other slide */}
+                  { !(currentLandscapeIndex === 0 && (aiMapDetails.status === 'loading' || aiMapDetails.status === 'error')) && currentImageToDisplay && currentImageToDisplay.src && (
                     <>
                       <Image
-                        key={currentImageToDisplay.src}
+                        key={currentImageToDisplay.src} // Key ensures re-render if src changes
                         src={currentImageToDisplay.src}
                         alt={currentImageToDisplay.alt}
                         fill
@@ -451,13 +470,12 @@ export default function DashboardPage() {
                         data-ai-hint={currentImageToDisplay['data-ai-hint']}
                         onError={(e) => { 
                           console.error(`Image failed to load: ${currentImageToDisplay.src}`, e);
-                          if (currentLandscapeIndex === 0) { 
+                          if (currentLandscapeIndex === 0 && aiMapDetails.status !== 'error') { // Prevent error loop if already error
                             setAiMapDetails(prev => ({
-                                ...prev,
                                 status: 'error',
                                 data: {
                                     ...errorAiMapPlaceholder,
-                                    alt: `Image source failed to load: ${prev.data.src}` // Use prev.data.src for the failing URL
+                                    alt: `Image source failed to load: ${prev.data.src}` 
                                 },
                                 errorMessage: `Image source failed to load: ${prev.data.src}`
                             }));
