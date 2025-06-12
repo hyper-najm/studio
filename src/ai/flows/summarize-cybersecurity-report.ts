@@ -1,11 +1,12 @@
+
 'use server';
 
 /**
- * @fileOverview Summarizes lengthy cybersecurity reports into concise summaries.
+ * @fileOverview Summarizes lengthy cybersecurity reports and analyzes them for originality and AI generation.
  *
- * - summarizeCybersecurityReport - A function that summarizes cybersecurity reports.
- * - SummarizeCybersecurityReportInput - The input type for the summarizeCybersecurityReport function.
- * - SummarizeCybersecurityReportOutput - The return type for the summarizeCybersecurityReport function.
+ * - summarizeCybersecurityReport - A function that summarizes reports and checks originality.
+ * - SummarizeCybersecurityReportInput - The input type for the function.
+ * - SummarizeCybersecurityReportOutput - The return type for the function.
  */
 
 import {ai} from '@/ai/genkit';
@@ -16,16 +17,37 @@ const SummarizeCybersecurityReportInputSchema = z.object({
     .string()
     .min(100, { message: 'Report content must be at least 100 characters long.' })
     .max(50000, { message: 'Report content is too long (max 50000 characters).' })
-    .describe('The cybersecurity report text content to summarize.'),
+    .describe('The cybersecurity report text content to summarize and analyze for originality.'),
   reportFileName: z.string().optional().describe('The original file name of the report, if applicable. This provides context to the AI about the source.'),
 });
 export type SummarizeCybersecurityReportInput = z.infer<typeof SummarizeCybersecurityReportInputSchema>;
 
+const SimilarityFindingSchema = z.object({
+  segment: z.string().describe('The specific segment from the input text that shows similarity.'),
+  explanation: z.string().describe('A brief explanation of the nature of the similarity or why it was flagged (e.g., "Common phrasing", "Matches publicly known information", "Structurally similar to standard templates").'),
+  potentialSourceType: z.string().optional().describe('A general category of potential source if identifiable (e.g., "Common knowledge", "Widely published article snippet", "Standard legal clause"). This will not be a specific URL.'),
+});
+
 const SummarizeCybersecurityReportOutputSchema = z.object({
-  summary: z.string().describe('A concise summary of the cybersecurity report.'),
-  keyFindings: z.string().describe('Key findings from the report, including their potential impact or implications.'),
-  riskScore: z.string().describe('The overall risk score from the report and what it signifies.'),
-  recommendedActions: z.string().describe('Recommended actions to address the findings.'),
+  // Summarization fields
+  summary: z.string().describe('A concise summary of the cybersecurity report (max 3 sentences).'),
+  keyFindings: z.string().describe('Key findings from the report, including their potential impact or implications (bulleted list).'),
+  riskScore: z.string().describe('The overall risk score from the report and what it signifies (e.g., "High - Immediate attention required", "7/10 - Signifies significant exposure").'),
+  recommendedActions: z.string().describe('Recommended actions to address the findings (list of actionable steps).'),
+
+  // Originality and AI Detection fields
+  originalityScore: z.number().min(0).max(100).describe('A score from 0 to 100 indicating the perceived originality of the text. 100 means highly original, 0 means very low originality.'),
+  plagiarismAssessment: z.enum(["Low", "Medium", "High", "Very High"]).describe('An overall assessment of the likelihood that the text contains non-original content based on general knowledge.'),
+  originalityAssessmentSummary: z.string().describe('A brief summary of the overall findings regarding originality and potential plagiarism.'),
+  similarSegments: z.array(SimilarityFindingSchema).describe('A list of segments from the text that show similarities to known patterns, common phrases, or widely available information. This is based on general knowledge and semantic similarity, not a live database check.'),
+  summarizedInputText: z.string().describe('A concise summary of what the provided input text itself is about.'),
+  keyThemesInInput: z.array(z.string()).describe('A list of key themes or topics identified in the input text.'),
+  originalityAnalysisConfidence: z.enum(["Low", "Medium", "High"]).describe("The AI's confidence in its originality and plagiarism assessment (Low, Medium, High)."),
+  aiGenerationAssessment: z.object({
+    isLikelyAi: z.boolean().describe('True if the text is assessed as likely AI-generated, False if likely human-written.'),
+    confidenceScore: z.number().min(0).max(100).describe("Confidence (0-100%) in the 'isLikelyAi' assessment. If isLikelyAi is true, this is confidence it IS AI. If false, confidence it is HUMAN."),
+    assessmentExplanation: z.string().optional().describe('Brief explanation for the AI generation assessment, highlighting indicators.'),
+  }).describe('Assessment of whether the content appears to be AI-generated.'),
 });
 export type SummarizeCybersecurityReportOutput = z.infer<typeof SummarizeCybersecurityReportOutputSchema>;
 
@@ -34,25 +56,59 @@ export async function summarizeCybersecurityReport(input: SummarizeCybersecurity
 }
 
 const prompt = ai.definePrompt({
-  name: 'summarizeCybersecurityReportPrompt',
+  name: 'summarizeAndAnalyzeReportPrompt', // Renamed prompt
   input: {schema: SummarizeCybersecurityReportInputSchema},
   output: {schema: SummarizeCybersecurityReportOutputSchema},
-  prompt: `You are an expert cybersecurity analyst. Your task is to summarize a cybersecurity report and provide key findings (explaining their potential impact or implications), risk score (and what it signifies), and recommended actions.
-  {{#if reportFileName}}
-  The report was provided from a file named: "{{reportFileName}}".
-  {{/if}}
+  config: { // Added safety settings
+    safetySettings: [
+      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_NONE' },
+    ],
+  },
+  prompt: `You are an expert cybersecurity analyst and an AI content analysis specialist.
+Your task is to thoroughly analyze the provided report content.
+{{#if reportFileName}}
+The report was provided from a file named: "{{reportFileName}}".
+{{/if}}
 
-  Report Content:
-  {{{report}}}
-  \n
-  Provide a concise summary, highlight key findings with their implications, provide the risk score with its significance, and suggest recommended actions based on the report.
-  Follow these instructions closely:
-  - The summary should be no more than 3 sentences.
-  - Key findings should be a bulleted list of the most important points, briefly explaining the impact of each. For example: "- Finding: Outdated software version. Impact: Exposes system to known vulnerabilities."
-  - The risk score should be a single number or a short phrase indicating the severity of the risk (e.g., "High - Immediate attention required", "7/10 - Signifies significant exposure").
-  - Recommended actions should be a list of actionable steps to mitigate the identified risks.
-  \n  Format the output as a JSON object with the following keys: summary, keyFindings, riskScore, recommendedActions.
-  `,
+Report Content:
+{{{report}}}
+
+You must perform two main tasks and provide a single JSON output adhering to the schema:
+
+PART 1: CYBERSECURITY REPORT SUMMARIZATION
+1.  "summary": Provide a concise summary of the cybersecurity report (max 3 sentences).
+2.  "keyFindings": Extract key findings from the report. Format as a bulleted list, including their potential impact or implications. For example: "- Finding: Outdated software version. Impact: Exposes system to known vulnerabilities."
+3.  "riskScore": Identify and state the overall risk score from the report and explain what it signifies (e.g., "High - Immediate attention required", "7/10 - Signifies significant exposure"). If no explicit score, assess and provide one.
+4.  "recommendedActions": List recommended actions to address the findings.
+
+PART 2: ORIGINALITY AND AI CONTENT DETECTION
+Based on the *same* "Report Content" provided above:
+5.  "originalityScore": Estimate an originality score from 0 (very low originality) to 100 (highly original).
+6.  "plagiarismAssessment": Categorize the risk of non-original content as "Low", "Medium", "High", or "Very High". This is based on semantic understanding and common knowledge, not a database check.
+7.  "originalityAssessmentSummary": Provide a brief (1-2 sentences) overall summary of your findings regarding originality and similarity.
+8.  "similarSegments": Identify specific segments from the input text that show notable similarity to common phrases, widely known information, or generic structures. For each segment:
+    *   "segment": Quote the exact text segment.
+    *   "explanation": Briefly explain why this segment was flagged (e.g., "Commonly used idiom," "Standard definition of a known concept," "Resembles typical boilerplate language").
+    *   "potentialSourceType" (optional): If possible, suggest a general category of where such phrasing might originate (e.g., "General knowledge," "Common academic writing pattern"). Do NOT invent specific URLs or book titles.
+    If no significant similarities are found, provide an empty array for "similarSegments" or a single entry stating such.
+9.  "summarizedInputText": Provide a concise summary of what the provided report text is about (distinct from the cybersecurity summary).
+10. "keyThemesInInput": List the main themes or topics discussed in the input text.
+11. "originalityAnalysisConfidence": State your confidence (Low, Medium, High) in this originality and plagiarism assessment (items 5-8).
+12. "aiGenerationAssessment": Analyze the text for characteristics of AI-generated content.
+    *   "isLikelyAi": Set to true if the text is likely AI-generated, false if likely human-written.
+    *   "confidenceScore": Your confidence (0-100%) in the 'isLikelyAi' assessment.
+    *   "assessmentExplanation" (optional): Briefly explain your reasoning, citing any indicators.
+
+IMPORTANT:
+- Your "similarSegments" analysis should focus on semantic and structural similarities recognizable from general knowledge. Do not claim to have checked against any specific database.
+- Be objective and factual in your report.
+- Your entire response MUST be a single, valid JSON object that strictly adheres to the defined output schema. Do not include any text, formatting, or markdown before or after the JSON object.
+Ensure all fields from both summarization and originality/AI detection parts are present in your output.
+`,
 });
 
 const summarizeCybersecurityReportFlow = ai.defineFlow(
@@ -63,6 +119,10 @@ const summarizeCybersecurityReportFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    return output!;
+    if (!output) {
+      throw new Error('AI model did not return a valid combined summary and originality report. This might be due to content filters or an internal error.');
+    }
+    return output;
   }
 );
+
