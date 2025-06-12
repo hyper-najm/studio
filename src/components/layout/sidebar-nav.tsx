@@ -47,7 +47,6 @@ const utilityNavItems: NavItem[] = [
 ];
 
 export function SidebarNav() {
-  console.log("--- SidebarNav component rendering ---"); // Diagnostic log
   const pathname = usePathname();
 
   const renderNavItem = (item: NavItem) => (
@@ -84,3 +83,4 @@ export function SidebarNav() {
     </div>
   );
 }
+

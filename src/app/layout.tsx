@@ -28,12 +28,9 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  console.log("--- RootLayout component rendering ---");
   return (
     <html lang="en" className="dark">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}>
-        {/* TEMP DIAGNOSTIC TEXT FROM LAYOUT */}
-        <div style={{ position: 'absolute', top: 0, left: 0, background: 'yellow', color: 'black', padding: '5px', zIndex: 9999 }}>TEMP DIAGNOSTIC TEXT FROM LAYOUT</div>
         <AuthProvider>
           <MainLayout>{children}</MainLayout>
           <Toaster />
@@ -42,3 +39,4 @@ export default function RootLayout({
     </html>
   );
 }
+
