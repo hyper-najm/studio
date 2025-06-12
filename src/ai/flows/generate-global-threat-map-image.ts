@@ -35,7 +35,7 @@ const generateGlobalThreatMapImageFlow = ai.defineFlow(
     outputSchema: GenerateGlobalThreatMapImageOutputSchema,
   },
   async () => { // Input parameter removed as it's not used for this basic version
-    const {media} = await ai.generate({
+    const generationResult = await ai.generate({
       model: 'googleai/gemini-2.0-flash-exp', // IMPORTANT: Use this model for image generation
       prompt: `Generate a dark-themed, futuristic, high-resolution world map visualizing global cyber threats. Suitable for a cybersecurity dashboard.`, // Further simplified prompt
       config: {
@@ -65,8 +65,14 @@ const generateGlobalThreatMapImageFlow = ai.defineFlow(
       },
     });
 
+    const media = generationResult.media;
+
     if (!media || !media.url) {
-      throw new Error('Image generation failed or returned no media URL.');
+      console.error(
+        'generateGlobalThreatMapImageFlow: Image generation failed or returned no media URL. Full AI response:',
+        JSON.stringify(generationResult, null, 2)
+      );
+      throw new Error('AI image generation failed or returned no media URL. If this issue persists, please check server logs for more details.');
     }
 
     return { imageDataUri: media.url };
