@@ -15,8 +15,8 @@ import {
   BookText,
   Activity,
   ShieldAlert,
-  ShieldX, 
-  ServerCog, 
+  ShieldX,
+  ServerCog,
   ScrollText,
   Settings,
   ClipboardCheck, // Ensure ClipboardCheck is imported
@@ -83,4 +83,3 @@ export function SidebarNav() {
     </div>
   );
 }
-
