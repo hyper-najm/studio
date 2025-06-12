@@ -17,7 +17,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Badge } from '@/components/ui/badge';
 import { checkOriginalityReport } from '@/lib/actions';
 import type { CheckOriginalityReportOutput, CheckOriginalityReportInput } from '@/ai/flows/check-originality-report';
-import { Loader2, ClipboardCheck, AlertTriangle, Info, FileText, Mic, Upload, SearchCheck, ListChecks, Activity, Percent, FileQuestion } from 'lucide-react';
+import { Loader2, ClipboardCheck, AlertTriangle, Info, FileText, Mic, Upload, SearchCheck, ListChecks, Activity, Percent, FileQuestion, ScrollText } from 'lucide-react'; // Added ScrollText
 import { useToast } from '@/hooks/use-toast';
 
 const MAX_FILE_SIZE_MB = 2;
