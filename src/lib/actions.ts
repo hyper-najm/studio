@@ -36,6 +36,11 @@ import {
   generateGlobalThreatMapImage as _generateGlobalThreatMapImage,
   type GenerateGlobalThreatMapImageOutput,
 } from '@/ai/flows/generate-global-threat-map-image';
+import {
+  checkOriginalityReport as _checkOriginalityReport,
+  type CheckOriginalityReportInput,
+  type CheckOriginalityReportOutput,
+} from '@/ai/flows/check-originality-report';
 
 
 export async function analyzePhishingAttempt(input: AnalyzePhishingAttemptInput): Promise<AnalyzePhishingAttemptOutput> {
@@ -122,3 +127,14 @@ export async function generateGlobalThreatMapImage(): Promise<GenerateGlobalThre
   }
 }
 
+export async function checkOriginalityReport(input: CheckOriginalityReportInput): Promise<CheckOriginalityReportOutput> {
+  try {
+    return await _checkOriginalityReport(input);
+  } catch (error) {
+    console.error("Error in checkOriginalityReport action:", error);
+    if (error instanceof Error) {
+      throw new Error(error.message);
+    }
+    throw new Error('Failed to check originality. Please try again.');
+  }
+}

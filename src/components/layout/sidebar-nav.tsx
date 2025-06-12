@@ -18,7 +18,8 @@ import {
   ShieldX, 
   ServerCog, 
   ScrollText,
-  Settings, // Added Settings icon
+  Settings,
+  ClipboardCheck, // Added icon for Originality Checker
   LucideIcon,
 } from 'lucide-react';
 
@@ -36,6 +37,7 @@ const mainNavItems: NavItem[] = [
   { href: '/malware-detector', label: 'Malware Detector', icon: ShieldX },
   { href: '/system-analyzer', label: 'System Analyzer', icon: ServerCog },
   { href: '/report-summarizer', label: 'Report Summarizer', icon: ScrollText },
+  { href: '/originality-checker', label: 'Originality Checker', icon: ClipboardCheck }, // New Item
   { href: '/predictive-sentinel', label: 'Predictive Sentinel', icon: Activity },
   { href: '/autonomous-responder', label: 'Autonomous Responder', icon: ShieldAlert },
 ];
@@ -81,5 +83,3 @@ export function SidebarNav() {
     </div>
   );
 }
-
-    
