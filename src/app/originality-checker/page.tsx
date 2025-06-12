@@ -17,12 +17,26 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Badge } from '@/components/ui/badge';
 import { checkOriginalityReport } from '@/lib/actions';
 import type { CheckOriginalityReportOutput, CheckOriginalityReportInput } from '@/ai/flows/check-originality-report';
-import { Loader2, ClipboardCheck, AlertTriangle, Info, FileText, Mic, Upload, SearchCheck, ListChecks, Activity, Percent, FileQuestion, ScrollText } from 'lucide-react'; // Added ScrollText
+import { Loader2, ClipboardCheck, AlertTriangle, Info, FileText, Mic, Upload, SearchCheck, ListChecks, Activity, Percent, FileQuestion, ScrollText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-const MAX_FILE_SIZE_MB = 2;
+const MAX_FILE_SIZE_MB = 5; // Increased from 2 to 5
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
-const ACCEPTED_FILE_TYPES = ['text/plain', 'text/markdown'];
+const ACCEPTED_MIME_TYPES = [ // Renamed from ACCEPTED_FILE_TYPES for clarity in this context
+  'text/plain',
+  'text/markdown',
+  'text/html',
+  'text/css',
+  'text/csv',
+  'application/javascript',
+  'application/json',
+  'application/xml',
+  'application/rtf',
+  // Note: Many script files (like .py, .java) might be reported as 'text/plain' by the browser.
+  // The `accept` attribute on the input field will guide the user with extensions.
+];
+const INPUT_ACCEPT_EXTENSIONS = ".txt,.md,.html,.htm,.css,.csv,.js,.jsx,.ts,.tsx,.json,.xml,.rtf,.py,.java,.c,.cpp,.h,.cs,.rb,.php,.sh,.log";
+
 
 const formSchema = z.object({
   textContent: z.string().max(30000, { message: 'Pasted text is too long (max 30000 characters).' }).optional(),
@@ -30,10 +44,14 @@ const formSchema = z.object({
     message: "Invalid file.",
   })
   .refine(file => file ? file.size <= MAX_FILE_SIZE_BYTES : true, `File size should be less than ${MAX_FILE_SIZE_MB}MB.`)
-  .refine(file => file ? ACCEPTED_FILE_TYPES.includes(file.type) : true, "Unsupported file type. Please upload a .txt or .md file.")
+  .refine(file => {
+    if (!file) return true;
+    // Check against specific MIME types or if the browser reports it as a general text type.
+    return ACCEPTED_MIME_TYPES.includes(file.type) || file.type.startsWith('text/');
+  }, "Unsupported file type. Please upload a common text-based file (e.g., .txt, .md, .html, .js, .py).")
   .optional(),
 }).refine(data => (data.textContent && data.textContent.trim().length >= 50) || data.uploadedFile, {
-  message: 'Either paste text (min 50 characters) or upload a text file for analysis.',
+  message: 'Either paste text (min 50 characters) or upload a text-based file for analysis.',
   path: ["textContent"],
 });
 
@@ -57,16 +75,15 @@ export default function OriginalityCheckerPage() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (!ACCEPTED_FILE_TYPES.includes(file.type)) {
-        setFormError("uploadedFile", { type: "type", message: "Unsupported file type. Please upload a .txt or .md file." });
-        setFileNamePreview(null); setValue('uploadedFile', undefined); return;
-      }
+      // Zod refinement will handle the detailed type check based on ACCEPTED_MIME_TYPES
+      // We just need to ensure it's a file and within size limits here for immediate feedback
       if (file.size > MAX_FILE_SIZE_BYTES) {
         setFormError("uploadedFile", { type: "size", message: `File size should be less than ${MAX_FILE_SIZE_MB}MB.` });
         setFileNamePreview(null); setValue('uploadedFile', undefined); return;
       }
+      
       setValue('uploadedFile', file, { shouldValidate: true });
-      setFileNamePreview(`${file.name} (${(file.size / 1024).toFixed(2)} KB)`);
+      setFileNamePreview(`${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`); // Show size in MB
       clearFormErrors("uploadedFile");
       if (form.getValues("textContent")) {
         toast({ title: "File Selected", description: "Content from the uploaded file will be combined with your pasted text."});
@@ -92,8 +109,8 @@ export default function OriginalityCheckerPage() {
           submissionText = fileText;
         }
       } catch (e) {
-        setErrorState("Failed to read file content. Please ensure it's a valid text file.");
-        toast({ variant: "destructive", title: "File Read Error", description: "Could not read the uploaded file." });
+        setErrorState("Failed to read file content. Please ensure it's a valid text-based file.");
+        toast({ variant: "destructive", title: "File Read Error", description: "Could not read the uploaded file. It might not be a plain text format." });
         setIsLoading(false); return;
       }
     }
@@ -103,12 +120,11 @@ export default function OriginalityCheckerPage() {
       toast({ variant: "destructive", title: "Input Too Short", description: "Combined text content must be at least 50 characters."});
       setIsLoading(false); return;
     }
-    if (submissionText.trim().length > 30000) {
-      setFormError("textContent", { type: "manual", message: "Combined text content is too long (max 30000 characters)." });
-      toast({ variant: "destructive", title: "Input Too Long", description: "Combined text content is too long."});
+    if (submissionText.trim().length > 30000) { // This limit matches the AI flow's input schema
+      setFormError("textContent", { type: "manual", message: "Combined text content is too long (max 30000 characters for AI analysis)." });
+      toast({ variant: "destructive", title: "Input Too Long", description: "Combined text content exceeds 30000 characters limit for analysis."});
       setIsLoading(false); return;
     }
-
 
     try {
       const aiInput: CheckOriginalityReportInput = { textContent: submissionText, fileName: submissionFileName };
@@ -127,8 +143,8 @@ export default function OriginalityCheckerPage() {
     switch (assessment?.toLowerCase()) {
       case "very high": return "destructive";
       case "high": return "destructive";
-      case "medium": return "default"; // Using primary for medium
-      default: return "secondary"; // Low
+      case "medium": return "default"; 
+      default: return "secondary"; 
     }
   };
   
@@ -136,7 +152,7 @@ export default function OriginalityCheckerPage() {
     switch (confidence?.toLowerCase()) {
       case "high": return "default";
       case "medium": return "secondary";
-      default: return "outline"; // Low
+      default: return "outline"; 
     }
   };
 
@@ -144,9 +160,9 @@ export default function OriginalityCheckerPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><ClipboardCheck />AI Originality & Plagiarism Report</CardTitle>
+          <CardTitle className="flex items-center gap-2"><ClipboardCheck />AI Originality & Content Report</CardTitle>
           <CardDescription>
-            Paste text or upload a text file (.txt, .md) to analyze its originality, identify potential similarities to existing content, and generate a comprehensive report.
+            Paste text or upload a text-based file (e.g., .txt, .md, .html, .js, .py, .csv) to analyze its originality, identify potential similarities, and generate a comprehensive report. Max file size: {MAX_FILE_SIZE_MB}MB.
           </CardDescription>
         </CardHeader>
         <Form {...form}>
@@ -175,10 +191,17 @@ export default function OriginalityCheckerPage() {
                 name="uploadedFile"
                 render={() => ( 
                   <FormItem>
-                    <FormLabel htmlFor="uploadedFile-originality">Or Upload a Text File (.txt, .md)</FormLabel>
+                    <FormLabel htmlFor="uploadedFile-originality">Or Upload a Text-Based File</FormLabel>
                     <div className="flex items-center gap-2">
                       <FormControl>
-                        <Input id="uploadedFile-originality" type="file" accept={ACCEPTED_FILE_TYPES.join(',')} ref={fileInputRef} onChange={handleFileChange} className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 flex-grow" />
+                        <Input 
+                          id="uploadedFile-originality" 
+                          type="file" 
+                          accept={INPUT_ACCEPT_EXTENSIONS} 
+                          ref={fileInputRef} 
+                          onChange={handleFileChange} 
+                          className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 flex-grow" 
+                        />
                       </FormControl>
                     </div>
                     {fileNamePreview && (
