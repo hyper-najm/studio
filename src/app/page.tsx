@@ -91,15 +91,15 @@ const initialAiMapPlaceholder: LandscapeImage = {
   'data-ai-hint': 'map placeholder initializing',
 };
 
-const loadingAiMapPlaceholder: LandscapeImage = {
-  src: 'https://placehold.co/800x450.png', // Placeholder for loading state, content shown via overlay
+const loadingAiMapPlaceholder: LandscapeImage = { // Used as a base for the loading state
+  src: 'https://placehold.co/800x450.png', 
   alt: 'Loading dynamic global threat map...',
   'data-ai-hint': 'loading map',
 };
 
 const errorAiMapPlaceholder: LandscapeImage = {
   src: `https://placehold.co/800x450.png`,
-  alt: `AI Map Unavailable. Showing placeholder.`, // More user-friendly alt for error
+  alt: `AI Map Unavailable. Showing placeholder.`,
   'data-ai-hint': 'error map generation',
 };
 
@@ -162,13 +162,12 @@ export default function DashboardPage() {
     setAiMapDetails(prev => ({
       ...prev,
       status: 'loading',
-      data: loadingAiMapPlaceholder, // Use specific loading placeholder
+      data: loadingAiMapPlaceholder, 
       errorMessage: null,
     }));
 
     try {
       const result = await generateGlobalThreatMapImage();
-      // Check if imageDataUri exists and is a non-trivial string (basic check for valid data URI)
       if (result && result.imageDataUri && result.imageDataUri.length > 100 && result.imageDataUri.startsWith('data:image')) {
         setAiMapDetails({
           status: 'success',
@@ -240,9 +239,16 @@ export default function DashboardPage() {
 
 
   const dashboardLandscapeImages = useMemo(() => {
-    const safeAiMapData = (aiMapDetails.data && aiMapDetails.data.src) ? aiMapDetails.data : initialAiMapPlaceholder;
-    return [safeAiMapData, ...defaultStaticSlideshowImages];
-  }, [aiMapDetails.data]);
+    let firstImage = initialAiMapPlaceholder;
+    if (aiMapDetails.status === 'success' && aiMapDetails.data && aiMapDetails.data.src.startsWith('data:image')) {
+      firstImage = aiMapDetails.data;
+    } else if (aiMapDetails.status === 'loading') {
+      firstImage = loadingAiMapPlaceholder; // Placeholder used as base, overlay handles text
+    } else if (aiMapDetails.status === 'error') {
+      firstImage = errorAiMapPlaceholder; // Placeholder used as base, overlay handles text
+    }
+    return [firstImage, ...defaultStaticSlideshowImages];
+  }, [aiMapDetails.status, aiMapDetails.data]);
 
 
   const startSlideshowInterval = useCallback(() => {
@@ -310,16 +316,17 @@ export default function DashboardPage() {
 
   const threatChangeText = threatChange >= 0 ? `+${threatChange}` : threatChange.toString();
   const threatChangeColor = threatChange > 0 ? "text-green-500" : threatChange < 0 ? "text-destructive" : "text-muted-foreground";
-
+  
   const currentImageToDisplay = dashboardLandscapeImages[currentLandscapeIndex] || initialAiMapPlaceholder;
   
   const isDialogDisabled = () => {
     if (!currentImageToDisplay || !currentImageToDisplay.src) return true;
     if (currentLandscapeIndex === 0) {
         if (aiMapDetails.status === 'loading') return true;
-        // Disable if it's an error AND the src is not a valid data URI (i.e., it's still the placeholder.co link for error)
-        if (aiMapDetails.status === 'error' && !aiMapDetails.data.src.startsWith('data:image')) return true;
+        // Disable dialog if it's an error for the AI map (which would be showing placeholder)
+        if (aiMapDetails.status === 'error') return true; 
     }
+    // For static placeholders, dialog should be enabled as they are just placeholders.
     return false;
   };
 
@@ -412,7 +419,7 @@ export default function DashboardPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Globe className="h-5 w-5" /> Global Landscape Slideshow</CardTitle>
           <CardDescription>
-            Conceptual visualizations of the global cyber threat landscape. The first image attempts to load dynamically from AI. Click an image to enlarge.
+            Conceptual visualizations of the global cyber threat landscape. The first image attempts to load dynamically from AI. The other images are placeholders. Click an image to enlarge.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -425,15 +432,9 @@ export default function DashboardPage() {
                   aria-label="View larger landscape image"
                   tabIndex={0}
                 >
-                  {currentLandscapeIndex === 0 && aiMapDetails.status === 'loading' && (
-                    <div className="flex flex-col items-center justify-center text-foreground">
-                      <Loader2 className="h-12 w-12 animate-spin text-primary mb-2" />
-                      <p>Generating AI Threat Map...</p>
-                    </div>
-                  )}
-                  { !(currentLandscapeIndex === 0 && aiMapDetails.status === 'loading') && currentImageToDisplay && currentImageToDisplay.src && (
-                    <>
-                      <Image
+                  {/* Image rendering or placeholder */}
+                  {currentImageToDisplay && currentImageToDisplay.src && (
+                     <Image
                         key={currentImageToDisplay.src} 
                         src={currentImageToDisplay.src}
                         alt={currentImageToDisplay.alt}
@@ -444,19 +445,40 @@ export default function DashboardPage() {
                         data-ai-hint={currentImageToDisplay['data-ai-hint']}
                         onError={(e) => {
                           console.error(`Slideshow Image failed to load: ${currentImageToDisplay.src}`, e);
-                          if (currentLandscapeIndex === 0 && aiMapDetails.status !== 'error') {
-                            setAiMapDetails({
+                          if (currentLandscapeIndex === 0 && aiMapDetails.status !== 'error') { // Prevents loop if error placeholder itself fails
+                            setAiMapDetails(prev => ({ // Use functional update if depending on previous state
+                                ...prev,
                                 status: 'error',
-                                data: errorAiMapPlaceholder,
+                                data: errorAiMapPlaceholder, // Ensure data is also set to error placeholder
                                 errorMessage: `Image source failed to load: ${currentImageToDisplay.src}`
-                            });
+                            }));
                           }
                         }}
                       />
-                       <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <span className="text-white text-lg font-semibold">View Larger</span>
-                      </div>
-                    </>
+                  )}
+
+                  {/* Loading Overlay for AI Map */}
+                  {currentLandscapeIndex === 0 && aiMapDetails.status === 'loading' && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 text-foreground backdrop-blur-sm rounded-md z-10">
+                      <Loader2 className="h-12 w-12 animate-spin text-primary mb-2" />
+                      <p>Generating AI Threat Map...</p>
+                    </div>
+                  )}
+
+                  {/* Error Overlay for AI Map */}
+                  {currentLandscapeIndex === 0 && aiMapDetails.status === 'error' && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-destructive/80 text-destructive-foreground backdrop-blur-sm p-4 text-center rounded-md z-10">
+                      <ServerCrash className="h-10 w-10 mb-2" />
+                      <p className="font-semibold">AI Map Unavailable</p>
+                      <p className="text-xs">{aiMapDetails.errorMessage || "The AI-generated map could not be loaded. Displaying a placeholder."}</p>
+                    </div>
+                  )}
+                  
+                  {/* View Larger Overlay (only if not loading/error for AI map) */}
+                  { !(currentLandscapeIndex === 0 && (aiMapDetails.status === 'loading' || aiMapDetails.status === 'error')) && (
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <span className="text-white text-lg font-semibold">View Larger</span>
+                    </div>
                   )}
                 </div>
               </DialogTrigger>
@@ -483,7 +505,7 @@ export default function DashboardPage() {
             <Button
               variant="outline"
               size="icon"
-              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 opacity-50 group-hover:opacity-100 transition-opacity bg-background/70 hover:bg-background"
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-20 opacity-50 group-hover:opacity-100 transition-opacity bg-background/70 hover:bg-background"
               onClick={handlePreviousImage}
               aria-label="Previous image"
               disabled={dashboardLandscapeImages.length <= 1}
@@ -493,14 +515,14 @@ export default function DashboardPage() {
             <Button
               variant="outline"
               size="icon"
-              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 opacity-50 group-hover:opacity-100 transition-opacity bg-background/70 hover:bg-background"
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-20 opacity-50 group-hover:opacity-100 transition-opacity bg-background/70 hover:bg-background"
               onClick={handleNextImage}
               aria-label="Next image"
               disabled={dashboardLandscapeImages.length <= 1}
             >
               <ChevronRight className="h-6 w-6" />
             </Button>
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 flex space-x-1.5">
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 flex space-x-1.5">
               {dashboardLandscapeImages.map((_, index) => (
                 <button
                   key={`dot-${index}`}
@@ -514,12 +536,13 @@ export default function DashboardPage() {
               ))}
             </div>
           </div>
+          {/* Alert specifically for AI Map failure, shown below the slideshow card */}
           {currentLandscapeIndex === 0 && aiMapDetails.status === 'error' && (
-             <Alert variant="destructive" className="mt-2">
+             <Alert variant="destructive" className="mt-4">
                 <ServerCrash className="h-4 w-4" />
                 <AlertDescription>
-                AI Global Threat Map could not be generated. Displaying a static map from the slideshow.
-                {aiMapDetails.errorMessage && ` (Details: ${aiMapDetails.errorMessage})`}
+                  The AI Global Threat Map could not be generated or loaded. A placeholder is being shown.
+                  {aiMapDetails.errorMessage && ` (Details: ${aiMapDetails.errorMessage})`}
                 </AlertDescription>
             </Alert>
           )}
@@ -541,11 +564,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       )}
-      <style jsx global>{`
-        /* Removed custom animate-fade-in CSS */
-      `}</style>
     </div>
   );
 }
-
     
