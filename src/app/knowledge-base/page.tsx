@@ -75,7 +75,6 @@ export default function KnowledgeBasePage() {
       setValue('uploadedFile', file, { shouldValidate: true });
       setFileNamePreview(`${file.name} (${(file.size / 1024).toFixed(2)} KB)`);
       clearFormErrors("uploadedFile");
-      // If a file is selected, it might be good to also clear the query field or notify user
       if (form.getValues("query")) {
         toast({ title: "File Selected", description: "Content from the uploaded file will be combined with your typed query."});
       }
@@ -122,6 +121,7 @@ export default function KnowledgeBasePage() {
       setQueryResult(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred.');
+      toast({ variant: "destructive", title: "Query Error", description: err instanceof Error ? err.message : 'An unknown error occurred processing your query.'});
     } finally {
       setIsLoading(false);
     }
@@ -145,13 +145,13 @@ export default function KnowledgeBasePage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel htmlFor="query-input">Your Cybersecurity Question</FormLabel>
-                    <div className="flex items-center gap-2">
+                    <div className="relative">
                       <FormControl>
                         <Textarea
                           id="query-input"
                           placeholder="e.g., What are common ransomware attack vectors? Or describe a scenario..."
                           {...field}
-                          className="flex-grow min-h-[100px] resize-y"
+                          className="flex-grow min-h-[100px] resize-y pr-10"
                         />
                       </FormControl>
                        <Button
@@ -160,7 +160,7 @@ export default function KnowledgeBasePage() {
                         size="icon"
                         onClick={() => toast({ title: "Voice Input", description: "Voice input feature for queries coming soon!"})}
                         aria-label="Use voice input for query"
-                        className="self-start mt-1"
+                        className="absolute right-1 top-1.5 text-muted-foreground hover:text-foreground"
                       >
                         <Mic className="h-5 w-5" />
                       </Button>
@@ -174,7 +174,7 @@ export default function KnowledgeBasePage() {
                 name="uploadedFile"
                 render={() => ( 
                   <FormItem>
-                    <FormLabel htmlFor="uploadedFile-kb">Or Upload a File (.txt, .md)</FormLabel>
+                    <FormLabel htmlFor="uploadedFile-kb">Or Upload a Context File (.txt, .md)</FormLabel>
                      <div className="flex items-center gap-2">
                       <FormControl>
                         <Input
@@ -203,7 +203,7 @@ export default function KnowledgeBasePage() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Searching...
+                    Searching Advisor...
                   </>
                 ) : (
                   'Ask Advisor'
@@ -215,7 +215,7 @@ export default function KnowledgeBasePage() {
       </Card>
 
       {error && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="mt-6">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Query Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>

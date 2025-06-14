@@ -68,7 +68,7 @@ export default function SystemAnalyzerPage() {
       case "high":
         return "destructive";
       case "medium":
-        return "default"; // Using primary for medium
+        return "default"; 
       case "low":
         return "secondary";
       default:
@@ -210,7 +210,7 @@ export default function SystemAnalyzerPage() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Analyzing System...
+                    Analyzing System Data...
                   </>
                 ) : (
                   'Analyze System Configuration'
@@ -230,7 +230,7 @@ export default function SystemAnalyzerPage() {
       </Card>
 
       {errorState && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="mt-6">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Analysis Error</AlertTitle>
           <AlertDescription>{errorState}</AlertDescription>
@@ -323,3 +323,5 @@ export default function SystemAnalyzerPage() {
     </div>
   );
 }
+
+    

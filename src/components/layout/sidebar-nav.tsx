@@ -19,7 +19,7 @@ import {
   ServerCog,
   ScrollText,
   Settings,
-  ClipboardCheck, // Ensure ClipboardCheck is imported
+  ClipboardCheck, 
   LucideIcon,
 } from 'lucide-react';
 
@@ -27,7 +27,7 @@ interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
-  bottom?: boolean; // Optional flag for items at the bottom
+  bottom?: boolean; 
 }
 
 const mainNavItems: NavItem[] = [
@@ -36,7 +36,7 @@ const mainNavItems: NavItem[] = [
   { href: '/knowledge-base', label: 'Knowledge Base', icon: BookText },
   { href: '/malware-detector', label: 'Malware Detector', icon: ShieldX },
   { href: '/system-analyzer', label: 'System Analyzer', icon: ServerCog },
-  { href: '/report-summarizer', label: 'Report Summarizer', icon: ScrollText },
+  { href: '/report-summarizer', label: 'Report Analyzer', icon: ScrollText }, // "Report Analyzer" sounds more encompassing
   { href: '/originality-checker', label: 'Originality Checker', icon: ClipboardCheck },
   { href: '/predictive-sentinel', label: 'Predictive Sentinel', icon: Activity },
   { href: '/autonomous-responder', label: 'Autonomous Responder', icon: ShieldAlert },
@@ -84,3 +84,4 @@ export function SidebarNav() {
   );
 }
 
+    

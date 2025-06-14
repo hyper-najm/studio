@@ -5,6 +5,13 @@ import { useState, useRef } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import mammoth from 'mammoth';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Ensure worker is correctly configured for pdf.js
+if (typeof window !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+}
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,24 +26,36 @@ import { summarizeCybersecurityReport } from '@/lib/actions';
 import type { SummarizeCybersecurityReportOutput, SummarizeCybersecurityReportInput } from '@/ai/flows/summarize-cybersecurity-report';
 import { 
     Loader2, ScrollText, AlertTriangle, Info, ListChecks, BarChart3, ShieldCheck, Mic, Upload, FileText,
-    ClipboardCheck, SearchCheck, Activity, Percent, FileQuestion, Bot, UserCheck, BrainCircuit
+    ClipboardCheck, SearchCheck, Activity, Percent, FileQuestion, Bot, UserCheck, BrainCircuit, FileWarning
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const MAX_FILE_SIZE_MB = 5;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
-const ACCEPTED_FILE_TYPES = ['text/plain', 'text/markdown'];
+
+const ACCEPTED_MIME_TYPES_REPORTS = [
+  'text/plain',
+  'text/markdown',
+  'application/pdf',
+  'application/msword', // .doc
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+];
+const INPUT_ACCEPT_EXTENSIONS_REPORTS = ".txt,.md,.doc,.docx,.pdf";
+
 
 const formSchema = z.object({
-  reportText: z.string().max(50000, { message: 'Pasted report content is too long (max 50000 characters).' }).optional(),
+  reportText: z.string().max(50000, { message: 'Pasted report content is too long (max 50000 characters for AI analysis).' }).optional(),
   reportFile: z.custom<File | undefined>((val) => typeof window === 'undefined' || val === undefined || val instanceof File, {
     message: "Invalid file.",
   })
   .refine(file => file ? file.size <= MAX_FILE_SIZE_BYTES : true, `File size should be less than ${MAX_FILE_SIZE_MB}MB.`)
-  .refine(file => file ? ACCEPTED_FILE_TYPES.includes(file.type) : true, "Unsupported file type. Please upload a .txt or .md file.")
+  .refine(file => {
+    if (!file) return true;
+    return ACCEPTED_MIME_TYPES_REPORTS.includes(file.type) || file.type.startsWith('text/'); // Allow common script extensions if MIME is generic
+  }, "Unsupported file type. Please upload a text-based document (.txt, .md, .docx, .pdf).")
   .optional(),
-}).refine(data => (data.reportText && data.reportText.length >= 100) || data.reportFile, {
-  message: 'Either paste report content (min 100 characters) or upload a report file.',
+}).refine(data => (data.reportText && data.reportText.trim().length >= 100) || data.reportFile, {
+  message: 'Either paste report content (min 100 characters) or upload a supported report file.',
   path: ["reportText"],
 });
 
@@ -48,6 +67,9 @@ export default function ReportSummarizerPage() {
   const [errorState, setErrorState] = useState<string | null>(null);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [fileNamePreview, setFileNamePreview] = useState<string | null>(null);
+  const [fileProcessingMessage, setFileProcessingMessage] = useState<string | null>(null);
+
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -61,57 +83,95 @@ export default function ReportSummarizerPage() {
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+    setFileProcessingMessage(null);
     if (file) {
-       if (!ACCEPTED_FILE_TYPES.includes(file.type)) {
-        setFormError("reportFile", { type: "type", message: "Unsupported file type. Please upload a .txt or .md file." });
-        setValue('reportFile', undefined);
-        return;
-      }
       if (file.size > MAX_FILE_SIZE_BYTES) {
         setFormError("reportFile", { type: "size", message: `File size should be less than ${MAX_FILE_SIZE_MB}MB.` });
-        setValue('reportFile', undefined);
-        return;
+        setFileNamePreview(null); setValue('reportFile', undefined); return;
       }
+      if (!ACCEPTED_MIME_TYPES_REPORTS.includes(file.type) && !file.type.startsWith('text/')) {
+         setFormError("reportFile", { type: "type", message: "Unsupported file type. Please upload .txt, .md, .doc, .docx, or .pdf." });
+         setFileNamePreview(null); setValue('reportFile', undefined); return;
+      }
+      
       setValue('reportFile', file, { shouldValidate: true });
+      setFileNamePreview(`${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`);
       clearFormErrors("reportFile");
-      toast({ title: "File Selected", description: `${file.name} has been selected.` });
+      if (form.getValues("reportText")) {
+        toast({ title: "File Selected", description: "Content from the uploaded file will be combined with your pasted text."});
+      }
+       if (file.type === 'application/msword') { // .doc
+        setFileProcessingMessage("Note: For .doc files, text extraction might be limited. Converting to .docx or pasting content is recommended for best results.");
+      }
     } else {
       setValue('reportFile', undefined, { shouldValidate: true });
+      setFileNamePreview(null);
     }
   };
 
-  const onSubmit: SubmitHandler<FormData> = async (data) => {
-    setIsLoading(true);
-    setErrorState(null);
-    setAnalysisResult(null);
-    clearFormErrors();
+  const extractTextFromDocx = async (file: File): Promise<string> => {
+    const arrayBuffer = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer });
+    return result.value;
+  };
 
-    let reportContentForAI = '';
-    let fileNameForAI: string | undefined = undefined;
+  const extractTextFromPdf = async (file: File): Promise<string> => {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let textContent = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const text = await page.getTextContent();
+      textContent += text.items.map(item => ('str' in item ? item.str : '')).join(' ') + '\n';
+    }
+    return textContent;
+  };
+
+  const onSubmit: SubmitHandler<FormData> = async (data) => {
+    setIsLoading(true); setErrorState(null); setAnalysisResult(null); clearFormErrors(); setFileProcessingMessage(null);
+    let reportContentForAI = data.reportText || "";
+    let fileNameForAI: string | undefined = selectedFile?.name;
 
     if (data.reportFile) {
+      fileNameForAI = data.reportFile.name;
+      setFileProcessingMessage(`Processing ${fileNameForAI}...`);
       try {
-        reportContentForAI = await data.reportFile.text();
-        fileNameForAI = data.reportFile.name;
-        if (data.reportText && data.reportText.trim().length > 0) {
-          reportContentForAI += `\n\n--- Additional Notes From Textarea ---\n${data.reportText}`;
+        let fileText = '';
+        if (data.reportFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') { // .docx
+          fileText = await extractTextFromDocx(data.reportFile);
+        } else if (data.reportFile.type === 'application/pdf') { // .pdf
+          fileText = await extractTextFromPdf(data.reportFile);
+        } else if (ACCEPTED_MIME_TYPES_REPORTS.includes(data.reportFile.type) || data.reportFile.type.startsWith('text/')) { // .txt, .md etc.
+          fileText = await data.reportFile.text();
+        } else if (data.reportFile.type === 'application/msword') { // .doc
+           toast({variant: "default", title: "Notice for .doc file", description: "Attempting text extraction for .doc. For best results, convert to .docx or paste content.", duration: 6000});
+           try { fileText = await data.reportFile.text(); } catch (e) { fileText = ""; } // Basic attempt, might be garbled
+        } else {
+           throw new Error(`Unsupported file type for direct text extraction: ${data.reportFile.name}. Please use .txt, .md, .docx, or .pdf.`);
         }
-      } catch (fileReadError) {
-        console.error("Error reading file:", fileReadError);
-        setErrorState("Failed to read the uploaded file. Please ensure it's a valid text file.");
-        toast({ variant: "destructive", title: "File Read Error", description: "Could not read the uploaded file." });
-        setIsLoading(false);
-        return;
+        
+        if (reportContentForAI.trim() && fileText.trim()) {
+          reportContentForAI += `\n\n--- Content from uploaded file: ${fileNameForAI} ---\n${fileText}`;
+        } else if (fileText.trim()) {
+          reportContentForAI = fileText;
+        }
+        setFileProcessingMessage(`${fileNameForAI} processed.`);
+      } catch (e: any) {
+        setErrorState(`Failed to read content from ${fileNameForAI}: ${e.message || "Please ensure it's a supported file format."}`);
+        toast({ variant: "destructive", title: "File Read Error", description: `Could not process ${fileNameForAI}. ${e.message}` });
+        setIsLoading(false); setFileProcessingMessage(null); return;
       }
-    } else if (data.reportText) {
-      reportContentForAI = data.reportText;
     }
 
-    if (reportContentForAI.length < 100) {
-      setFormError("reportText", {type: "manual", message: "Report content (from file or text area) must be at least 100 characters."})
-      toast({ variant: "destructive", title: "Input Too Short", description: "Report content must be at least 100 characters." });
-      setIsLoading(false);
-      return;
+    if (reportContentForAI.trim().length < 100) {
+      setFormError("reportText", {type: "manual", message: "Combined report content (from input or file) must be at least 100 characters."})
+      toast({ variant: "destructive", title: "Input Too Short", description: "Combined report content must be at least 100 characters." });
+      setIsLoading(false); setFileProcessingMessage(null); return;
+    }
+    if (reportContentForAI.trim().length > 50000) { // Max length from AI Flow
+      setFormError("reportText", { type: "manual", message: "Combined report content is too long (max 50000 characters for AI analysis)." });
+      toast({ variant: "destructive", title: "Input Too Long", description: "Combined report content exceeds 50000 characters limit for analysis."});
+      setIsLoading(false); setFileProcessingMessage(null); return;
     }
     
     const aiInput: SummarizeCybersecurityReportInput = {
@@ -128,6 +188,7 @@ export default function ReportSummarizerPage() {
       toast({ variant: "destructive", title: "Analysis Error", description: errorMessage });
     } finally {
       setIsLoading(false);
+      setFileProcessingMessage(null);
     }
   };
 
@@ -154,7 +215,8 @@ export default function ReportSummarizerPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><BrainCircuit />Comprehensive Report Analyzer</CardTitle>
           <CardDescription>
-            Paste report content or upload a text file (.txt, .md). Get a summary, key findings, risk assessment, recommended actions, PLUS an originality check and AI-generated content detection.
+            Paste report content or upload a document (.txt, .md, .doc, .docx, .pdf). Get a summary, key findings, risk assessment, recommended actions, PLUS an originality check and AI-generated content detection. Max file size: {MAX_FILE_SIZE_MB}MB.
+            For older .doc files, conversion to .docx or pasting text is recommended for best results.
           </CardDescription>
         </CardHeader>
         <Form {...form}>
@@ -165,24 +227,30 @@ export default function ReportSummarizerPage() {
                 name="reportFile"
                 render={() => ( 
                   <FormItem>
-                    <FormLabel htmlFor="reportFile-input">Upload Report File (.txt, .md)</FormLabel>
+                    <FormLabel htmlFor="reportFile-input">Upload Report File (.txt, .md, .doc, .docx, .pdf)</FormLabel>
                      <div className="flex items-center gap-2">
                       <FormControl>
                         <Input
                           id="reportFile-input"
                           type="file"
-                          accept={ACCEPTED_FILE_TYPES.join(',')}
+                          accept={INPUT_ACCEPT_EXTENSIONS_REPORTS}
                           ref={fileInputRef}
                           onChange={handleFileChange}
                           className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 flex-grow"
                         />
                       </FormControl>
                     </div>
-                    {selectedFile && (
+                    {fileNamePreview && (
                       <div className="mt-2 p-2 border rounded-md bg-muted/50 text-sm flex items-center gap-2">
                         <FileText className="h-5 w-5 text-muted-foreground" /> 
-                        <span>{selectedFile.name} ({(selectedFile.size / 1024).toFixed(2)} KB)</span>
+                        <span>{fileNamePreview}</span>
                       </div>
+                    )}
+                    {fileProcessingMessage && (
+                      <Alert variant="default" className="mt-2 text-sm">
+                         <FileWarning className="h-4 w-4"/>
+                        <AlertDescription>{fileProcessingMessage}</AlertDescription>
+                      </Alert>
                     )}
                     <FormMessage />
                   </FormItem>
@@ -198,7 +266,7 @@ export default function ReportSummarizerPage() {
                     <FormControl>
                       <Textarea
                         id="report-content"
-                        placeholder="Paste report text here, or add notes if uploading a file..."
+                        placeholder="Paste report text here, or add notes if uploading a file (uploaded file content takes precedence if both are provided)..."
                         className="min-h-[200px] resize-y pr-10"
                         {...field}
                       />
@@ -247,10 +315,9 @@ export default function ReportSummarizerPage() {
         <Card className="mt-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Info />Comprehensive Analysis Report</CardTitle>
-            <CardDescription>For file: {form.getValues('reportFile')?.name || 'Pasted Content'}</CardDescription>
+            <CardDescription>For file: {form.getValues('reportFile')?.name || (form.getValues('reportText') ? 'Pasted Content' : 'N/A')}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-8"> {/* Increased spacing between sections */}
-            {/* Summarization Section */}
+          <CardContent className="space-y-8"> 
             <section>
               <h2 className="text-xl font-semibold mb-3 flex items-center gap-2"><ScrollText className="h-6 w-6 text-primary"/>Content Summary & Insights</h2>
               <div className="space-y-4">
@@ -281,10 +348,8 @@ export default function ReportSummarizerPage() {
               </div>
             </section>
 
-            {/* Separator */}
             <hr className="my-6 border-border" />
 
-            {/* Originality & AI Detection Section */}
             <section>
                 <h2 className="text-xl font-semibold mb-3 flex items-center gap-2"><ClipboardCheck className="h-6 w-6 text-primary"/>Originality & AI Detection</h2>
                 <div className="space-y-4">
@@ -391,3 +456,4 @@ export default function ReportSummarizerPage() {
   );
 }
 
+    

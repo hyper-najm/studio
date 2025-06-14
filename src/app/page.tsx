@@ -86,29 +86,29 @@ interface AiMapDetails {
 }
 
 const initialAiMapPlaceholder: LandscapeImage = {
-  src: 'https://placehold.co/800x450.png?text=Initializing+AI+Map...',
+  src: 'https://placehold.co/800x450.png',
   alt: 'Global threat map placeholder - initializing',
   'data-ai-hint': 'map placeholder initializing',
 };
 
 const loadingAiMapPlaceholder: LandscapeImage = {
-  src: 'https://placehold.co/800x450.png?text=Loading+AI+Threat+Map...',
+  src: 'https://placehold.co/800x450.png',
   alt: 'Loading dynamic global threat map...',
   'data-ai-hint': 'loading map',
 };
 
 const errorAiMapPlaceholder: LandscapeImage = {
-  src: `https://placehold.co/800x450.png?text=AI+Map+Unavailable`,
+  src: `https://placehold.co/800x450.png`,
   alt: `Error generating AI map. Using placeholder.`,
   'data-ai-hint': 'error map generation',
 };
 
 
 const defaultStaticSlideshowImages: LandscapeImage[] = [
-  { src: 'https://picsum.photos/seed/cyber2/800/450', alt: 'Conceptual visualization: Abstract streams of data flowing, with some streams being intercepted or corrupted, symbolizing data breach attempts and information theft.', 'data-ai-hint': 'data breach' },
-  { src: 'https://picsum.photos/seed/cyber3/800/450', alt: 'Conceptual visualization: A darkened world map with glowing points of origin for cyber attacks, connected by lines to targeted regions, depicting global threat vectors.', 'data-ai-hint': 'attack vectors' },
-  { src: 'https://picsum.photos/seed/cyber4/800/450', alt: 'Conceptual visualization: A futuristic interface showing complex data analytics and threat intelligence charts, representing advanced cybersecurity monitoring.', 'data-ai-hint': 'threat analytics' },
-  { src: 'https://picsum.photos/seed/cyber5/800/450', alt: 'Conceptual visualization: Code matrix with a shield icon overlay, symbolizing digital defense mechanisms and software security protecting against malware.', 'data-ai-hint': 'software security' },
+  { src: 'https://placehold.co/800x450.png', alt: 'Conceptual visualization: Abstract streams of data flowing, with some streams being intercepted or corrupted, symbolizing data breach attempts and information theft.', 'data-ai-hint': 'data breach' },
+  { src: 'https://placehold.co/800x450.png', alt: 'Conceptual visualization: A darkened world map with glowing points of origin for cyber attacks, connected by lines to targeted regions, depicting global threat vectors.', 'data-ai-hint': 'attack vectors' },
+  { src: 'https://placehold.co/800x450.png', alt: 'Conceptual visualization: A futuristic interface showing complex data analytics and threat intelligence charts, representing advanced cybersecurity monitoring.', 'data-ai-hint': 'threat analytics' },
+  { src: 'https://placehold.co/800x450.png', alt: 'Conceptual visualization: Code matrix with a shield icon overlay, symbolizing digital defense mechanisms and software security protecting against malware.', 'data-ai-hint': 'software security' },
 ];
 
 
@@ -167,7 +167,7 @@ export default function DashboardPage() {
 
     try {
       const result = await generateGlobalThreatMapImage();
-      if (result && result.imageDataUri && result.imageDataUri.length > 100) { // Basic check for valid Data URI
+      if (result && result.imageDataUri && result.imageDataUri.length > 100) { 
         setAiMapDetails({
           status: 'success',
           data: {
@@ -251,7 +251,7 @@ export default function DashboardPage() {
         setCurrentLandscapeIndex(prevIndex => (prevIndex + 1) % dashboardLandscapeImages.length);
         }, SLIDESHOW_INTERVAL_MS);
     }
-  }, [dashboardLandscapeImages]); // Corrected dependency
+  }, [dashboardLandscapeImages]); 
 
   useEffect(() => {
     fetchMap();
@@ -267,7 +267,7 @@ export default function DashboardPage() {
 
     const dataRefreshIntervalId = setInterval(() => { 
       generateRandomData();
-    }, 30000); // Refresh data every 30 seconds
+    }, 30000); 
 
     return () => {
       if (slideshowIntervalIdRef.current) {
@@ -405,7 +405,7 @@ export default function DashboardPage() {
           <div className="relative group">
             <Dialog>
               <DialogTrigger asChild disabled={
-                (currentLandscapeIndex === 0 && (aiMapDetails.status === 'loading' || (aiMapDetails.status === 'error' && !aiMapDetails.data.src.startsWith('data:image')))) || // Disable if error placeholder without data URI
+                (currentLandscapeIndex === 0 && (aiMapDetails.status === 'loading' || (aiMapDetails.status === 'error' && !aiMapDetails.data.src.startsWith('data:image')))) || 
                 !currentImageToDisplay || !currentImageToDisplay.src
               }>
                 <div
@@ -420,11 +420,10 @@ export default function DashboardPage() {
                       <p>Generating AI Threat Map...</p>
                     </div>
                   )}
-                   {/* Display the image if available and not loading for the first slide, or for any other slide */}
                   { !(currentLandscapeIndex === 0 && aiMapDetails.status === 'loading') && currentImageToDisplay && currentImageToDisplay.src && (
                     <>
                       <Image
-                        key={currentImageToDisplay.src + currentLandscapeIndex} // Key ensures re-render if src or index changes
+                        key={currentImageToDisplay.src + currentLandscapeIndex} 
                         src={currentImageToDisplay.src}
                         alt={currentImageToDisplay.alt}
                         fill
@@ -435,7 +434,7 @@ export default function DashboardPage() {
                         onError={(e) => { 
                           console.error(`Slideshow Image failed to load: ${currentImageToDisplay.src}`, e);
                           if (currentLandscapeIndex === 0 && aiMapDetails.status !== 'error') { 
-                            setAiMapDetails({ // Use the error placeholder directly
+                            setAiMapDetails({ 
                                 status: 'error',
                                 data: errorAiMapPlaceholder,
                                 errorMessage: `Image source failed to load: ${currentImageToDisplay.src}`
@@ -508,7 +507,7 @@ export default function DashboardPage() {
              <Alert variant="destructive" className="mt-2">
                 <ServerCrash className="h-4 w-4" />
                 <AlertDescription>
-                AI Global Threat Map could not be generated. Displaying static map.
+                AI Global Threat Map could not be generated. Displaying a static map from the slideshow.
                 {aiMapDetails.errorMessage && ` (Details: ${aiMapDetails.errorMessage})`}
                 </AlertDescription>
             </Alert>
@@ -544,3 +543,4 @@ export default function DashboardPage() {
   );
 }
 
+    

@@ -32,7 +32,7 @@ const SummarizeCybersecurityReportOutputSchema = z.object({
   // Summarization fields
   summary: z.string().describe('A concise summary of the cybersecurity report (max 3 sentences).'),
   keyFindings: z.string().describe('Key findings from the report, including their potential impact or implications (bulleted list).'),
-  riskScore: z.string().describe('The overall risk score from the report and what it signifies (e.g., "High - Immediate attention required", "7/10 - Signifies significant exposure").'),
+  riskScore: z.string().describe('The overall risk score from the report and what it signifies (e.g., "High - Immediate attention required", "7/10 - Signifies significant exposure"). If no explicit score, assess and provide one.'),
   recommendedActions: z.string().describe('Recommended actions to address the findings (list of actionable steps).'),
 
   // Originality and AI Detection fields
@@ -56,10 +56,10 @@ export async function summarizeCybersecurityReport(input: SummarizeCybersecurity
 }
 
 const prompt = ai.definePrompt({
-  name: 'summarizeAndAnalyzeReportPrompt', // Renamed prompt
+  name: 'summarizeAndAnalyzeReportPrompt',
   input: {schema: SummarizeCybersecurityReportInputSchema},
   output: {schema: SummarizeCybersecurityReportOutputSchema},
-  config: { // Added safety settings
+  config: { 
     safetySettings: [
       { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
       { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
@@ -71,7 +71,9 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert cybersecurity analyst and an AI content analysis specialist.
 Your task is to thoroughly analyze the provided report content.
 {{#if reportFileName}}
-The report was provided from a file named: "{{reportFileName}}".
+The report was provided from a file named: "{{reportFileName}}". This context might be relevant for understanding the report's nature.
+{{else}}
+The report was provided as pasted text.
 {{/if}}
 
 Report Content:
@@ -82,8 +84,8 @@ You must perform two main tasks and provide a single JSON output adhering to the
 PART 1: CYBERSECURITY REPORT SUMMARIZATION
 1.  "summary": Provide a concise summary of the cybersecurity report (max 3 sentences).
 2.  "keyFindings": Extract key findings from the report. Format as a bulleted list, including their potential impact or implications. For example: "- Finding: Outdated software version. Impact: Exposes system to known vulnerabilities."
-3.  "riskScore": Identify and state the overall risk score from the report and explain what it signifies (e.g., "High - Immediate attention required", "7/10 - Signifies significant exposure"). If no explicit score, assess and provide one.
-4.  "recommendedActions": List recommended actions to address the findings.
+3.  "riskScore": Identify and state the overall risk score from the report and explain what it signifies (e.g., "High - Immediate attention required", "7/10 - Signifies significant exposure"). If no explicit score, assess and provide one based on the content.
+4.  "recommendedActions": List recommended actions to address the findings. Format as a list of actionable steps.
 
 PART 2: ORIGINALITY AND AI CONTENT DETECTION
 Based on the *same* "Report Content" provided above:
@@ -100,8 +102,8 @@ Based on the *same* "Report Content" provided above:
 11. "originalityAnalysisConfidence": State your confidence (Low, Medium, High) in this originality and plagiarism assessment (items 5-8).
 12. "aiGenerationAssessment": Analyze the text for characteristics of AI-generated content.
     *   "isLikelyAi": Set to true if the text is likely AI-generated, false if likely human-written.
-    *   "confidenceScore": Your confidence (0-100%) in the 'isLikelyAi' assessment.
-    *   "assessmentExplanation" (optional): Briefly explain your reasoning, citing any indicators.
+    *   "confidenceScore": Your confidence (0-100%) in the 'isLikelyAi' assessment. If isLikelyAi is true, this is confidence it IS AI. If false, confidence it is HUMAN.
+    *   "assessmentExplanation" (optional): Briefly explain your reasoning, citing any indicators (e.g., "Highly structured but lacks nuanced phrasing typical of expert human analysis.", "Uses common AI-generated sentence patterns.").
 
 IMPORTANT:
 - Your "similarSegments" analysis should focus on semantic and structural similarities recognizable from general knowledge. Do not claim to have checked against any specific database.
@@ -126,3 +128,4 @@ const summarizeCybersecurityReportFlow = ai.defineFlow(
   }
 );
 
+    

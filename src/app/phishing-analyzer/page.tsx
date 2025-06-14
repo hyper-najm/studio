@@ -45,7 +45,7 @@ export default function PhishingAnalyzerPage() {
   const [analysisResult, setAnalysisResult] = useState<AnalyzePhishingAttemptOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorState, setErrorState] = useState<string | null>(null);
-  const [filePreview, setFilePreview] = useState<string | null>(null); // Renamed from uploadedImagePreview
+  const [filePreview, setFilePreview] = useState<string | null>(null); 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -53,12 +53,12 @@ export default function PhishingAnalyzerPage() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       content: '',
-      uploadedFile: undefined, // Renamed from imageFile
+      uploadedFile: undefined, 
     },
   });
 
   const { setValue, watch, clearErrors: clearFormErrors, setError: setFormError } = form;
-  const selectedFile = watch('uploadedFile'); // Renamed from selectedImageFile
+  const selectedFile = watch('uploadedFile'); 
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -84,9 +84,9 @@ export default function PhishingAnalyzerPage() {
         };
         reader.readAsDataURL(file);
       } else if (ACCEPTED_TEXT_FILE_TYPES.includes(file.type)) {
-        setFilePreview(file.name); // Show filename as preview for text files
+        setFilePreview(file.name); 
       } else {
-        setFilePreview(null); // Should not happen due to earlier validation
+        setFilePreview(null); 
       }
       clearFormErrors("uploadedFile");
     } else {
@@ -124,7 +124,6 @@ export default function PhishingAnalyzerPage() {
         }
       }
       
-      // Final validation before sending to AI
       if (!submissionImageDataUri && (!submissionContent || submissionContent.trim().length < 10)) {
         setFormError("content", { type: "manual", message: "Text content (from textarea or file) must be at least 10 characters if no image is provided." });
         toast({ variant: "destructive", title: "Input Required", description: "Text content (from textarea or file) must be at least 10 characters if no image is provided."});
@@ -132,7 +131,6 @@ export default function PhishingAnalyzerPage() {
         return;
       }
        if (!submissionContent && !submissionImageDataUri) {
-         // This case should ideally be caught by formSchema.refine, but as a safeguard:
         toast({ variant: "destructive", title: "Input Required", description: "Please provide text content or upload a file."});
         setIsLoading(false);
         return;
@@ -161,7 +159,7 @@ export default function PhishingAnalyzerPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><ShieldAlert />Advanced Input Analyzer</CardTitle>
           <CardDescription>
-            Submit URLs, text snippets, email content, or upload an image/text file (e.g., screenshot, .txt, .eml) for in-depth phishing analysis and educational feedback.
+            Submit URLs, text snippets, email content, or upload an image/text file (e.g., screenshot, .txt, .html, .eml) for in-depth phishing analysis and educational feedback.
           </CardDescription>
         </CardHeader>
         <Form {...form}>
@@ -199,7 +197,7 @@ export default function PhishingAnalyzerPage() {
               />
               <FormField
                 control={form.control}
-                name="uploadedFile" // Renamed from imageFile
+                name="uploadedFile" 
                 render={() => ( 
                   <FormItem>
                     <FormLabel htmlFor="uploadedFile-input">Upload File (Image or Text)</FormLabel>
@@ -219,7 +217,7 @@ export default function PhishingAnalyzerPage() {
                   </FormItem>
                 )}
               />
-              {filePreview && selectedFile && ( // Check selectedFile to ensure preview corresponds to current file
+              {filePreview && selectedFile && ( 
                 <div className="mt-2">
                   <p className="text-sm font-medium mb-1">File Preview:</p>
                   {ACCEPTED_IMAGE_TYPES.includes(selectedFile.type) ? (
@@ -250,7 +248,7 @@ export default function PhishingAnalyzerPage() {
       </Card>
 
       {errorState && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="mt-6">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Analysis Error</AlertTitle>
           <AlertDescription>{errorState}</AlertDescription> 
@@ -299,3 +297,5 @@ export default function PhishingAnalyzerPage() {
     </div>
   );
 }
+
+    

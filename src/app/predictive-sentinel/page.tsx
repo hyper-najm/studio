@@ -2,13 +2,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"; // Added CardFooter
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"; 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { generateSecurityAwarenessTip } from '@/lib/actions';
 import type { GenerateSecurityAwarenessTipOutput } from '@/ai/flows/generate-security-awareness-tip';
-import { Loader2, Lightbulb, AlertTriangle, Activity, Mic } from 'lucide-react';
+import { Loader2, Lightbulb, AlertTriangle, Activity, Mic, Info } from 'lucide-react'; // Added Info icon
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -50,13 +50,20 @@ export default function PredictiveSentinelPage() {
 
   return (
     <div className="space-y-6">
+       <Alert variant="default" className="border-primary bg-primary/5">
+        <Activity className="h-5 w-5 text-primary" />
+        <AlertTitle className="font-semibold text-primary">Feature Under Development</AlertTitle>
+        <AlertDescription>
+          The core Predictive Sentinel engine, which uses machine learning to anticipate potential cyberattacks, is currently under intensive development. 
+          The security tip generator below is a preview of our AI-driven educational capabilities. Stay tuned for full predictive features!
+        </AlertDescription>
+      </Alert>
+
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Activity />Predictive Sentinel</CardTitle>
+          <CardTitle className="flex items-center gap-2"><Activity />Predictive Sentinel Insights</CardTitle>
           <CardDescription>
-            This feature uses machine learning to anticipate potential cyberattacks based on historical data and emerging threat patterns. It offers proactive security recommendations.
-            <br />
-            <strong className="text-primary mt-2 block">Currently under development.</strong>
+            Harnessing AI to anticipate threats and provide proactive security guidance.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -144,3 +151,5 @@ export default function PredictiveSentinelPage() {
     </div>
   );
 }
+
+    
