@@ -2,27 +2,17 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldAlert, Zap, Bot } from "lucide-react"; 
 import Image from "next/image";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; 
 
 export default function AutonomousResponderPage() {
   return (
     <div className="space-y-6">
-      <Alert variant="default" className="border-primary bg-primary/5">
-        <ShieldAlert className="h-5 w-5 text-primary" />
-        <AlertTitle className="font-semibold text-primary">Advanced Feature - Under Intensive Development</AlertTitle>
-        <AlertDescription>
-          The core Autonomous AI Responder & Guardian system, capable of independent incident management and adaptive response workflows, is currently under intensive development. 
-          This powerful feature is <strong className="font-semibold">coming soon!</strong> We are working hard to bring you a truly autonomous security experience.
-          <br/>
-          The information below outlines our vision for this feature. We appreciate your patience!
-        </AlertDescription>
-      </Alert>
-
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Bot />Autonomous AI Responder & Guardian (Vision)</CardTitle>
           <CardDescription>
-            CyberGuardian Pro's Autonomous Responder is an AI-driven system designed to operate independently to manage and neutralize security incidents. It intelligently analyzes threats, executes pre-defined and adaptive response workflows (like isolating systems or blocking malicious IPs), alerts personnel with detailed educational reports, and learns from each event to improve future responses. This system aims to "do all the work" in routine incident handling, allowing your team to focus on strategic security.
+            CyberGuardian Pro's Autonomous Responder is an AI-driven system envisioned to operate independently to manage and neutralize security incidents. It would intelligently analyze threats, execute pre-defined and adaptive response workflows (like isolating systems or blocking malicious IPs), alert personnel with detailed educational reports, and learn from each event to improve future responses. 
+            <br />
+            <strong className="text-primary mt-1 block">Please note: The core Autonomous AI Responder system is currently under intensive development and will be available soon. The information here outlines our vision.</strong>
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center text-center">
@@ -38,5 +28,3 @@ export default function AutonomousResponderPage() {
     </div>
   );
 }
-
-    

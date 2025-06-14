@@ -51,16 +51,17 @@ export default function PredictiveSentinelPage() {
 
   return (
     <div className="space-y-6">
-       <Alert variant="default" className="border-primary bg-primary/5">
-        <Activity className="h-5 w-5 text-primary" />
-        <AlertTitle className="font-semibold text-primary">Core Predictive Engine - Under Intensive Development</AlertTitle>
-        <AlertDescription>
-          We're actively building the advanced machine learning capabilities for the Predictive Sentinel to anticipate and forecast potential cyberattacks. 
-          This core functionality is <strong className="font-semibold">coming soon!</strong>
-          <br />
-          In the meantime, explore our AI-driven Security Awareness Tip Generator below.
-        </AlertDescription>
-      </Alert>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Activity className="text-primary"/>Predictive Sentinel</CardTitle>
+          <CardDescription>
+            The Predictive Sentinel aims to use advanced machine learning to anticipate and forecast potential cyberattacks.
+            <strong className="text-primary mt-1 block">The core predictive engine is under intensive development and will be available soon.</strong>
+            <br />
+            In the meantime, you can use our AI-powered Security Awareness Tip Generator below to get instant educational insights.
+          </CardDescription>
+        </CardHeader>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -140,5 +141,3 @@ export default function PredictiveSentinelPage() {
     </div>
   );
 }
-
-    
