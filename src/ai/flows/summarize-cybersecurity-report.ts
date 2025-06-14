@@ -35,14 +35,14 @@ const SummarizeCybersecurityReportOutputSchema = z.object({
   riskScore: z.string().describe('The overall risk score from the report and what it signifies (e.g., "High - Immediate attention required", "7/10 - Signifies significant exposure"). If no explicit score, assess and provide one.'),
   recommendedActions: z.string().describe('Recommended actions to address the findings (list of actionable steps).'),
 
-  // Originality and AI Detection fields
+  // Originality and AI Detection fields from CheckOriginalityReportOutputSchema
   originalityScore: z.number().min(0).max(100).describe('A score from 0 to 100 indicating the perceived originality of the text. 100 means highly original, 0 means very low originality.'),
   plagiarismAssessment: z.enum(["Low", "Medium", "High", "Very High"]).describe('An overall assessment of the likelihood that the text contains non-original content based on general knowledge.'),
-  originalityAssessmentSummary: z.string().describe('A brief summary of the overall findings regarding originality and potential plagiarism.'),
+  originalityAssessmentSummary: z.string().describe('A brief summary of the overall findings regarding originality and potential plagiarism (distinct from the main report summary).'), // Renamed from assessmentSummary to avoid conflict
   similarSegments: z.array(SimilarityFindingSchema).describe('A list of segments from the text that show similarities to known patterns, common phrases, or widely available information. This is based on general knowledge and semantic similarity, not a live database check.'),
-  summarizedInputText: z.string().describe('A concise summary of what the provided input text itself is about.'),
-  keyThemesInInput: z.array(z.string()).describe('A list of key themes or topics identified in the input text.'),
-  originalityAnalysisConfidence: z.enum(["Low", "Medium", "High"]).describe("The AI's confidence in its originality and plagiarism assessment (Low, Medium, High)."),
+  summarizedInputText: z.string().describe('A concise summary of what the provided input text itself is about (distinct from the main report summary).'), // Renamed from overallSummary to avoid conflict
+  keyThemesInInput: z.array(z.string()).describe('A list of key themes or topics identified in the input text (distinct from key findings of the report).'), // Renamed from keyThemes to avoid conflict
+  originalityAnalysisConfidence: z.enum(["Low", "Medium", "High"]).describe("The AI's confidence in its originality and plagiarism assessment (Low, Medium, High)."), // Renamed from confidence to avoid conflict
   aiGenerationAssessment: z.object({
     isLikelyAi: z.boolean().describe('True if the text is assessed as likely AI-generated, False if likely human-written.'),
     confidenceScore: z.number().min(0).max(100).describe("Confidence (0-100%) in the 'isLikelyAi' assessment. If isLikelyAi is true, this is confidence it IS AI. If false, confidence it is HUMAN."),
@@ -68,7 +68,7 @@ const prompt = ai.definePrompt({
       { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_NONE' },
     ],
   },
-  prompt: `You are an expert cybersecurity analyst and an AI content analysis specialist.
+  prompt: `You are an expert cybersecurity analyst AND an AI content analysis specialist.
 Your task is to thoroughly analyze the provided report content.
 {{#if reportFileName}}
 The report was provided from a file named: "{{reportFileName}}". This context might be relevant for understanding the report's nature.
@@ -79,26 +79,25 @@ The report was provided as pasted text.
 Report Content:
 {{{report}}}
 
-You must perform two main tasks and provide a single JSON output adhering to the schema:
+You must perform TWO main sets of tasks and provide a single JSON output adhering to the schema.
 
 PART 1: CYBERSECURITY REPORT SUMMARIZATION
 1.  "summary": Provide a concise summary of the cybersecurity report (max 3 sentences).
 2.  "keyFindings": Extract key findings from the report. Format as a bulleted list, including their potential impact or implications. For example: "- Finding: Outdated software version. Impact: Exposes system to known vulnerabilities."
-3.  "riskScore": Identify and state the overall risk score from the report and explain what it signifies (e.g., "High - Immediate attention required", "7/10 - Signifies significant exposure"). If no explicit score, assess and provide one based on the content.
+3.  "riskScore": Identify and state the overall risk score from the report and explain what it signifies (e.g., "High - Immediate attention required", "7/10 - Signifies significant exposure"). If no explicit score is present in the report, assess the content and provide an estimated risk score along with its justification.
 4.  "recommendedActions": List recommended actions to address the findings. Format as a list of actionable steps.
 
-PART 2: ORIGINALITY AND AI CONTENT DETECTION
-Based on the *same* "Report Content" provided above:
+PART 2: ORIGINALITY AND AI CONTENT DETECTION (Analyze the *same* "Report Content" provided above)
 5.  "originalityScore": Estimate an originality score from 0 (very low originality) to 100 (highly original).
-6.  "plagiarismAssessment": Categorize the risk of non-original content as "Low", "Medium", "High", or "Very High". This is based on semantic understanding and common knowledge, not a database check.
-7.  "originalityAssessmentSummary": Provide a brief (1-2 sentences) overall summary of your findings regarding originality and similarity.
+6.  "plagiarismAssessment": Categorize the risk of non-original content as "Low", "Medium", "High", or "Very High". This is based on semantic understanding and common knowledge, not a live database check.
+7.  "originalityAssessmentSummary": Provide a brief (1-2 sentences) overall summary of your findings regarding originality and similarity. This is separate from the main report summary.
 8.  "similarSegments": Identify specific segments from the input text that show notable similarity to common phrases, widely known information, or generic structures. For each segment:
     *   "segment": Quote the exact text segment.
     *   "explanation": Briefly explain why this segment was flagged (e.g., "Commonly used idiom," "Standard definition of a known concept," "Resembles typical boilerplate language").
     *   "potentialSourceType" (optional): If possible, suggest a general category of where such phrasing might originate (e.g., "General knowledge," "Common academic writing pattern"). Do NOT invent specific URLs or book titles.
-    If no significant similarities are found, provide an empty array for "similarSegments" or a single entry stating such.
-9.  "summarizedInputText": Provide a concise summary of what the provided report text is about (distinct from the cybersecurity summary).
-10. "keyThemesInInput": List the main themes or topics discussed in the input text.
+    If no significant similarities are found, provide an empty array for "similarSegments".
+9.  "summarizedInputText": Provide a concise summary of what the provided report text is about (distinct from the cybersecurity summary in Part 1).
+10. "keyThemesInInput": List the main themes or topics discussed in the input text (distinct from key findings in Part 1).
 11. "originalityAnalysisConfidence": State your confidence (Low, Medium, High) in this originality and plagiarism assessment (items 5-8).
 12. "aiGenerationAssessment": Analyze the text for characteristics of AI-generated content.
     *   "isLikelyAi": Set to true if the text is likely AI-generated, false if likely human-written.
@@ -109,7 +108,7 @@ IMPORTANT:
 - Your "similarSegments" analysis should focus on semantic and structural similarities recognizable from general knowledge. Do not claim to have checked against any specific database.
 - Be objective and factual in your report.
 - Your entire response MUST be a single, valid JSON object that strictly adheres to the defined output schema. Do not include any text, formatting, or markdown before or after the JSON object.
-Ensure all fields from both summarization and originality/AI detection parts are present in your output.
+Ensure all fields from both summarization (Part 1) and originality/AI detection (Part 2) are present in your output.
 `,
 });
 

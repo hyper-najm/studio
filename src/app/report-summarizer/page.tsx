@@ -8,7 +8,6 @@ import * as z from 'zod';
 import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Ensure worker is correctly configured for pdf.js
 if (typeof window !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 }
@@ -37,8 +36,8 @@ const ACCEPTED_MIME_TYPES_REPORTS = [
   'text/plain',
   'text/markdown',
   'application/pdf',
-  'application/msword', // .doc
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+  'application/msword', 
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
 ];
 const INPUT_ACCEPT_EXTENSIONS_REPORTS = ".txt,.md,.doc,.docx,.pdf";
 
@@ -51,8 +50,8 @@ const formSchema = z.object({
   .refine(file => file ? file.size <= MAX_FILE_SIZE_BYTES : true, `File size should be less than ${MAX_FILE_SIZE_MB}MB.`)
   .refine(file => {
     if (!file) return true;
-    return ACCEPTED_MIME_TYPES_REPORTS.includes(file.type) || file.type.startsWith('text/'); // Allow common script extensions if MIME is generic
-  }, "Unsupported file type. Please upload a text-based document (.txt, .md, .docx, .pdf).")
+    return ACCEPTED_MIME_TYPES_REPORTS.includes(file.type) || file.type.startsWith('text/');
+  }, "Unsupported file type. Please upload a .txt, .md, .doc, .docx, or .pdf file.")
   .optional(),
 }).refine(data => (data.reportText && data.reportText.trim().length >= 100) || data.reportFile, {
   message: 'Either paste report content (min 100 characters) or upload a supported report file.',
@@ -100,7 +99,7 @@ export default function ReportSummarizerPage() {
       if (form.getValues("reportText")) {
         toast({ title: "File Selected", description: "Content from the uploaded file will be combined with your pasted text."});
       }
-       if (file.type === 'application/msword') { // .doc
+       if (file.type === 'application/msword') { 
         setFileProcessingMessage("Note: For .doc files, text extraction might be limited. Converting to .docx or pasting content is recommended for best results.");
       }
     } else {
@@ -120,7 +119,7 @@ export default function ReportSummarizerPage() {
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     let textContent = '';
     for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
+      const page = await page.getPage(i);
       const text = await page.getTextContent();
       textContent += text.items.map(item => ('str' in item ? item.str : '')).join(' ') + '\n';
     }
@@ -137,15 +136,15 @@ export default function ReportSummarizerPage() {
       setFileProcessingMessage(`Processing ${fileNameForAI}...`);
       try {
         let fileText = '';
-        if (data.reportFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') { // .docx
+        if (data.reportFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') { 
           fileText = await extractTextFromDocx(data.reportFile);
-        } else if (data.reportFile.type === 'application/pdf') { // .pdf
+        } else if (data.reportFile.type === 'application/pdf') { 
           fileText = await extractTextFromPdf(data.reportFile);
-        } else if (ACCEPTED_MIME_TYPES_REPORTS.includes(data.reportFile.type) || data.reportFile.type.startsWith('text/')) { // .txt, .md etc.
+        } else if (data.reportFile.type === 'application/msword') { 
+           toast({variant: "default", title: "Notice for .doc file", description: "Attempting text extraction for .doc. For best results, convert to .docx or paste content.", duration: 7000});
+           try { fileText = await data.reportFile.text(); } catch (e) { fileText = ""; } 
+        } else if (ACCEPTED_MIME_TYPES_REPORTS.includes(data.reportFile.type) || data.reportFile.type.startsWith('text/')) { 
           fileText = await data.reportFile.text();
-        } else if (data.reportFile.type === 'application/msword') { // .doc
-           toast({variant: "default", title: "Notice for .doc file", description: "Attempting text extraction for .doc. For best results, convert to .docx or paste content.", duration: 6000});
-           try { fileText = await data.reportFile.text(); } catch (e) { fileText = ""; } // Basic attempt, might be garbled
         } else {
            throw new Error(`Unsupported file type for direct text extraction: ${data.reportFile.name}. Please use .txt, .md, .docx, or .pdf.`);
         }
@@ -155,9 +154,9 @@ export default function ReportSummarizerPage() {
         } else if (fileText.trim()) {
           reportContentForAI = fileText;
         }
-        setFileProcessingMessage(`${fileNameForAI} processed.`);
+        setFileProcessingMessage(`${fileNameForAI} processed successfully.`);
       } catch (e: any) {
-        setErrorState(`Failed to read content from ${fileNameForAI}: ${e.message || "Please ensure it's a supported file format."}`);
+        setErrorState(`Failed to read content from ${fileNameForAI}: ${e.message || "Please ensure it's a supported file format and not corrupted."}`);
         toast({ variant: "destructive", title: "File Read Error", description: `Could not process ${fileNameForAI}. ${e.message}` });
         setIsLoading(false); setFileProcessingMessage(null); return;
       }
@@ -168,7 +167,7 @@ export default function ReportSummarizerPage() {
       toast({ variant: "destructive", title: "Input Too Short", description: "Combined report content must be at least 100 characters." });
       setIsLoading(false); setFileProcessingMessage(null); return;
     }
-    if (reportContentForAI.trim().length > 50000) { // Max length from AI Flow
+    if (reportContentForAI.trim().length > 50000) { 
       setFormError("reportText", { type: "manual", message: "Combined report content is too long (max 50000 characters for AI analysis)." });
       toast({ variant: "destructive", title: "Input Too Long", description: "Combined report content exceeds 50000 characters limit for analysis."});
       setIsLoading(false); setFileProcessingMessage(null); return;
@@ -188,7 +187,7 @@ export default function ReportSummarizerPage() {
       toast({ variant: "destructive", title: "Analysis Error", description: errorMessage });
     } finally {
       setIsLoading(false);
-      setFileProcessingMessage(null);
+      if (!errorState) setFileProcessingMessage(null); // Clear processing message on success
     }
   };
 
@@ -215,8 +214,9 @@ export default function ReportSummarizerPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><BrainCircuit />Comprehensive Report Analyzer</CardTitle>
           <CardDescription>
-            Paste report content or upload a document (.txt, .md, .doc, .docx, .pdf). Get a summary, key findings, risk assessment, recommended actions, PLUS an originality check and AI-generated content detection. Max file size: {MAX_FILE_SIZE_MB}MB.
-            For older .doc files, conversion to .docx or pasting text is recommended for best results.
+            Upload a report (.txt, .md, .doc, .docx, .pdf) or paste its content. Get a summary, key findings, risk assessment, recommended actions, PLUS an originality check and AI-generated content detection. Max file size: {MAX_FILE_SIZE_MB}MB.
+            <br/>
+            <strong className="text-primary/90 mt-1 block">For older .doc files, conversion to .docx or pasting text is recommended for optimal text extraction.</strong>
           </CardDescription>
         </CardHeader>
         <Form {...form}>
@@ -247,7 +247,7 @@ export default function ReportSummarizerPage() {
                       </div>
                     )}
                     {fileProcessingMessage && (
-                      <Alert variant="default" className="mt-2 text-sm">
+                      <Alert variant={errorState ? "destructive" : "default"} className="mt-2 text-sm">
                          <FileWarning className="h-4 w-4"/>
                         <AlertDescription>{fileProcessingMessage}</AlertDescription>
                       </Alert>
@@ -266,7 +266,7 @@ export default function ReportSummarizerPage() {
                     <FormControl>
                       <Textarea
                         id="report-content"
-                        placeholder="Paste report text here, or add notes if uploading a file (uploaded file content takes precedence if both are provided)..."
+                        placeholder="Paste report text here. If uploading a file, this can be used for additional notes or context (uploaded file text will be primary if both provided)..."
                         className="min-h-[200px] resize-y pr-10"
                         {...field}
                       />
@@ -303,10 +303,10 @@ export default function ReportSummarizerPage() {
         </Form>
       </Card>
 
-      {errorState && (
+      {errorState && !isLoading && ( // Show error only if not loading
         <Alert variant="destructive" className="mt-6">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
+          <AlertTitle>Error During Analysis</AlertTitle>
           <AlertDescription>{errorState}</AlertDescription>
         </Alert>
       )}
@@ -315,14 +315,14 @@ export default function ReportSummarizerPage() {
         <Card className="mt-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Info />Comprehensive Analysis Report</CardTitle>
-            <CardDescription>For file: {form.getValues('reportFile')?.name || (form.getValues('reportText') ? 'Pasted Content' : 'N/A')}</CardDescription>
+            <CardDescription>For: {form.getValues('reportFile')?.name || (form.getValues('reportText')?.substring(0,50) ? `Pasted Content ("${form.getValues('reportText')?.substring(0,50)}...")` : 'Pasted Content')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-8"> 
             <section>
               <h2 className="text-xl font-semibold mb-3 flex items-center gap-2"><ScrollText className="h-6 w-6 text-primary"/>Content Summary & Insights</h2>
               <div className="space-y-4">
                 <div>
-                  <h3 className="font-semibold text-lg mb-2">Concise Summary:</h3>
+                  <h3 className="font-semibold text-lg mb-2">Concise Report Summary:</h3>
                   <div className="p-3 rounded-md border bg-muted/30 text-sm">
                     <p className="whitespace-pre-wrap">{analysisResult.summary}</p>
                   </div>
@@ -372,9 +372,9 @@ export default function ReportSummarizerPage() {
                         </CardTitle>
                         <div className="mb-2">
                         {analysisResult.aiGenerationAssessment.isLikelyAi ? (
-                            <p className="text-destructive font-semibold">Likely AI-Generated</p>
+                            <p className="text-destructive font-semibold">Assessed as Likely AI-Generated</p>
                         ) : (
-                            <p className="text-green-500 font-semibold">Likely Human-Written</p>
+                            <p className="text-green-500 font-semibold">Assessed as Likely Human-Written</p>
                         )}
                         </div>
                         <div className="flex items-center gap-2 mb-1">
@@ -420,19 +420,19 @@ export default function ReportSummarizerPage() {
                             ))}
                         </Accordion>
                         ) : (
-                        <p className="text-sm text-muted-foreground p-3 rounded-md border bg-muted/30">No significant similar segments identified.</p>
+                        <p className="text-sm text-muted-foreground p-3 rounded-md border bg-muted/30">No significant similar segments identified by the AI based on general knowledge analysis.</p>
                         )}
                     </div>
                     
                     <div>
-                        <h3 className="font-semibold text-lg mb-2">Summary of Input Text:</h3>
+                        <h3 className="font-semibold text-lg mb-2">Summary of Input Text (Overall):</h3>
                         <div className="p-3 rounded-md border bg-muted/30 text-sm max-h-60 overflow-y-auto">
                         <p className="whitespace-pre-wrap">{analysisResult.summarizedInputText}</p>
                         </div>
                     </div>
 
                     <div>
-                        <h3 className="font-semibold text-lg mb-2">Key Themes in Input:</h3>
+                        <h3 className="font-semibold text-lg mb-2">Key Themes in Input Text (Overall):</h3>
                         {analysisResult.keyThemesInInput && analysisResult.keyThemesInInput.length > 0 ? (
                         <div className="flex flex-wrap gap-2 p-3 rounded-md border bg-muted/30">
                             {analysisResult.keyThemesInInput.map((theme, index) => (
@@ -440,7 +440,7 @@ export default function ReportSummarizerPage() {
                             ))}
                         </div>
                         ) : (
-                            <p className="text-sm text-muted-foreground p-3 rounded-md border bg-muted/30">No specific key themes identified in the input.</p>
+                            <p className="text-sm text-muted-foreground p-3 rounded-md border bg-muted/30">No specific key themes were distinctly identified in the input text.</p>
                         )}
                     </div>
                     <div>

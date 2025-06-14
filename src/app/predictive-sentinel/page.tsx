@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { generateSecurityAwarenessTip } from '@/lib/actions';
 import type { GenerateSecurityAwarenessTipOutput } from '@/ai/flows/generate-security-awareness-tip';
-import { Loader2, Lightbulb, AlertTriangle, Activity, Mic, Info } from 'lucide-react'; // Added Info icon
+import { Loader2, Lightbulb, AlertTriangle, Activity, Mic } from 'lucide-react'; 
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -43,6 +43,7 @@ export default function PredictiveSentinelPage() {
       setTipResult(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred.');
+      toast({ variant: "destructive", title: "Error Generating Tip", description: err instanceof Error ? err.message : 'An unknown error occurred.' });
     } finally {
       setIsLoading(false);
     }
@@ -52,31 +53,19 @@ export default function PredictiveSentinelPage() {
     <div className="space-y-6">
        <Alert variant="default" className="border-primary bg-primary/5">
         <Activity className="h-5 w-5 text-primary" />
-        <AlertTitle className="font-semibold text-primary">Feature Under Development</AlertTitle>
+        <AlertTitle className="font-semibold text-primary">Core Predictive Engine - Under Intensive Development</AlertTitle>
         <AlertDescription>
-          The core Predictive Sentinel engine, which uses machine learning to anticipate potential cyberattacks, is currently under intensive development. 
-          The security tip generator below is a preview of our AI-driven educational capabilities. Stay tuned for full predictive features!
+          We're actively building the advanced machine learning capabilities for the Predictive Sentinel to anticipate and forecast potential cyberattacks. 
+          This core functionality is <strong className="font-semibold">coming soon!</strong>
+          <br />
+          In the meantime, explore our AI-driven Security Awareness Tip Generator below.
         </AlertDescription>
       </Alert>
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Activity />Predictive Sentinel Insights</CardTitle>
-          <CardDescription>
-            Harnessing AI to anticipate threats and provide proactive security guidance.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
-            While the full predictive engine is being built, you can generate AI-powered security awareness tips below. These tips provide educational insights into various security topics.
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Lightbulb />Proactive Security Tip Generator</CardTitle>
-          <CardDescription>Enter a topic to get an educational security awareness tip.</CardDescription>
+          <CardTitle className="flex items-center gap-2"><Lightbulb className="text-yellow-400"/>AI Security Awareness Tip Generator</CardTitle>
+          <CardDescription>Get instant, AI-powered educational security tips on various topics to enhance your awareness.</CardDescription>
         </CardHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleGenerateTip)}>
@@ -86,7 +75,7 @@ export default function PredictiveSentinelPage() {
                   name="topic"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel htmlFor="tip-topic">Tip Topic</FormLabel>
+                      <FormLabel htmlFor="tip-topic">Enter a Security Topic:</FormLabel>
                       <div className="flex items-center gap-2">
                         <FormControl>
                           <Input 
@@ -100,7 +89,7 @@ export default function PredictiveSentinelPage() {
                           type="button"
                           variant="ghost"
                           size="icon"
-                          onClick={() => toast({ title: "Voice Input", description: "Voice input feature coming soon!" })}
+                          onClick={() => toast({ title: "Voice Input", description: "Voice input feature for tip topic coming soon!" })}
                           aria-label="Use voice input for tip topic"
                         >
                           <Mic className="h-5 w-5" />
@@ -126,8 +115,8 @@ export default function PredictiveSentinelPage() {
           </form>
         </Form>
         
-        {error && (
-          <CardContent>
+        {error && !isLoading && (
+          <CardContent className="pt-4">
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Error Generating Tip</AlertTitle>
@@ -137,10 +126,10 @@ export default function PredictiveSentinelPage() {
         )}
 
         {tipResult && (
-          <CardContent>
+          <CardContent className="pt-4">
             <Alert variant="default" className="border-primary bg-primary/10">
               <Lightbulb className="h-4 w-4 text-primary" />
-              <AlertTitle className="text-primary">Security Awareness Tip</AlertTitle>
+              <AlertTitle className="text-primary">Security Awareness Tip on "{form.getValues('topic')}"</AlertTitle>
               <AlertDescription className="text-foreground whitespace-pre-wrap">
                 {tipResult.tip}
               </AlertDescription>
