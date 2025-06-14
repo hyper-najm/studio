@@ -81,7 +81,7 @@ interface LandscapeImage {
 
 interface AiMapDetails {
   status: 'idle' | 'loading' | 'success' | 'error';
-  data: LandscapeImage; 
+  data: LandscapeImage;
   errorMessage: string | null;
 }
 
@@ -92,14 +92,14 @@ const initialAiMapPlaceholder: LandscapeImage = {
 };
 
 const loadingAiMapPlaceholder: LandscapeImage = {
-  src: 'https://placehold.co/800x450.png',
+  src: 'https://placehold.co/800x450.png', // Placeholder for loading state, content shown via overlay
   alt: 'Loading dynamic global threat map...',
   'data-ai-hint': 'loading map',
 };
 
 const errorAiMapPlaceholder: LandscapeImage = {
   src: `https://placehold.co/800x450.png`,
-  alt: `Error generating AI map. Using placeholder.`,
+  alt: `AI Map Unavailable. Showing placeholder.`, // More user-friendly alt for error
   'data-ai-hint': 'error map generation',
 };
 
@@ -137,7 +137,7 @@ const shuffleArray = <T>(array: T[]): T[] => {
 };
 
 const NUMBER_OF_INSIGHTS_TO_DISPLAY = 3;
-const SLIDESHOW_INTERVAL_MS = 7000; 
+const SLIDESHOW_INTERVAL_MS = 7000;
 
 export default function DashboardPage() {
   const [activeThreatsCount, setActiveThreatsCount] = useState(0);
@@ -159,15 +159,17 @@ export default function DashboardPage() {
   });
 
   const fetchMap = useCallback(async () => {
-    setAiMapDetails({
+    setAiMapDetails(prev => ({
+      ...prev,
       status: 'loading',
-      data: loadingAiMapPlaceholder, 
+      data: loadingAiMapPlaceholder, // Use specific loading placeholder
       errorMessage: null,
-    });
+    }));
 
     try {
       const result = await generateGlobalThreatMapImage();
-      if (result && result.imageDataUri && result.imageDataUri.length > 100) { 
+      // Check if imageDataUri exists and is a non-trivial string (basic check for valid data URI)
+      if (result && result.imageDataUri && result.imageDataUri.length > 100 && result.imageDataUri.startsWith('data:image')) {
         setAiMapDetails({
           status: 'success',
           data: {
@@ -195,7 +197,7 @@ export default function DashboardPage() {
         errorMessage: errorMsg,
       });
     }
-  }, []);  
+  }, []);
 
   const generateRandomData = useCallback(() => {
     setActiveThreatsCount(Math.floor(Math.random() * 25) + 8);
@@ -238,7 +240,8 @@ export default function DashboardPage() {
 
 
   const dashboardLandscapeImages = useMemo(() => {
-    return [aiMapDetails.data, ...defaultStaticSlideshowImages];
+    const safeAiMapData = (aiMapDetails.data && aiMapDetails.data.src) ? aiMapDetails.data : initialAiMapPlaceholder;
+    return [safeAiMapData, ...defaultStaticSlideshowImages];
   }, [aiMapDetails.data]);
 
 
@@ -246,28 +249,28 @@ export default function DashboardPage() {
     if (slideshowIntervalIdRef.current) {
       clearInterval(slideshowIntervalIdRef.current);
     }
-    if (dashboardLandscapeImages.length > 1) { 
+    if (dashboardLandscapeImages.length > 1) {
         slideshowIntervalIdRef.current = setInterval(() => {
         setCurrentLandscapeIndex(prevIndex => (prevIndex + 1) % dashboardLandscapeImages.length);
         }, SLIDESHOW_INTERVAL_MS);
     }
-  }, [dashboardLandscapeImages]); 
+  }, [dashboardLandscapeImages, SLIDESHOW_INTERVAL_MS]);
 
   useEffect(() => {
     fetchMap();
     generateRandomData();
   }, [fetchMap, generateRandomData]);
 
-  useEffect(() => { 
+  useEffect(() => {
     startSlideshowInterval();
-    
+
     const insightsIntervalId = setInterval(() => {
        setGlobalThreatInsights(shuffleArray(allPossibleInsights).slice(0, NUMBER_OF_INSIGHTS_TO_DISPLAY));
-    }, SLIDESHOW_INTERVAL_MS * 2); 
+    }, SLIDESHOW_INTERVAL_MS * 2);
 
-    const dataRefreshIntervalId = setInterval(() => { 
+    const dataRefreshIntervalId = setInterval(() => {
       generateRandomData();
-    }, 30000); 
+    }, 30000);
 
     return () => {
       if (slideshowIntervalIdRef.current) {
@@ -276,22 +279,22 @@ export default function DashboardPage() {
       clearInterval(insightsIntervalId);
       clearInterval(dataRefreshIntervalId);
     };
-  }, [startSlideshowInterval, generateRandomData, dashboardLandscapeImages.length]); 
+  }, [startSlideshowInterval, generateRandomData, dashboardLandscapeImages.length]);
 
 
   const handlePreviousImage = useCallback(() => {
     setCurrentLandscapeIndex(prevIndex => (prevIndex - 1 + dashboardLandscapeImages.length) % dashboardLandscapeImages.length);
-    startSlideshowInterval(); 
+    startSlideshowInterval();
   }, [dashboardLandscapeImages.length, startSlideshowInterval]);
 
   const handleNextImage = useCallback(() => {
     setCurrentLandscapeIndex(prevIndex => (prevIndex + 1) % dashboardLandscapeImages.length);
-    startSlideshowInterval(); 
+    startSlideshowInterval();
   }, [dashboardLandscapeImages.length, startSlideshowInterval]);
 
   const handleDotNavigation = useCallback((index: number) => {
     setCurrentLandscapeIndex(index);
-    startSlideshowInterval(); 
+    startSlideshowInterval();
   }, [startSlideshowInterval]);
 
 
@@ -308,7 +311,18 @@ export default function DashboardPage() {
   const threatChangeText = threatChange >= 0 ? `+${threatChange}` : threatChange.toString();
   const threatChangeColor = threatChange > 0 ? "text-green-500" : threatChange < 0 ? "text-destructive" : "text-muted-foreground";
 
-  const currentImageToDisplay = dashboardLandscapeImages[currentLandscapeIndex];
+  const currentImageToDisplay = dashboardLandscapeImages[currentLandscapeIndex] || initialAiMapPlaceholder;
+  
+  const isDialogDisabled = () => {
+    if (!currentImageToDisplay || !currentImageToDisplay.src) return true;
+    if (currentLandscapeIndex === 0) {
+        if (aiMapDetails.status === 'loading') return true;
+        // Disable if it's an error AND the src is not a valid data URI (i.e., it's still the placeholder.co link for error)
+        if (aiMapDetails.status === 'error' && !aiMapDetails.data.src.startsWith('data:image')) return true;
+    }
+    return false;
+  };
+
 
   return (
     <div className="space-y-6">
@@ -404,10 +418,7 @@ export default function DashboardPage() {
         <CardContent>
           <div className="relative group">
             <Dialog>
-              <DialogTrigger asChild disabled={
-                (currentLandscapeIndex === 0 && (aiMapDetails.status === 'loading' || (aiMapDetails.status === 'error' && !aiMapDetails.data.src.startsWith('data:image')))) || 
-                !currentImageToDisplay || !currentImageToDisplay.src
-              }>
+              <DialogTrigger asChild disabled={isDialogDisabled()}>
                 <div
                   className="aspect-video w-full bg-muted rounded-md flex items-center justify-center text-muted-foreground relative overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
                   role="button"
@@ -423,18 +434,18 @@ export default function DashboardPage() {
                   { !(currentLandscapeIndex === 0 && aiMapDetails.status === 'loading') && currentImageToDisplay && currentImageToDisplay.src && (
                     <>
                       <Image
-                        key={currentImageToDisplay.src + currentLandscapeIndex} 
+                        key={currentImageToDisplay.src} 
                         src={currentImageToDisplay.src}
                         alt={currentImageToDisplay.alt}
                         fill
                         priority={currentLandscapeIndex === 0 && aiMapDetails.status === 'success'}
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        className="rounded-md object-cover animate-fade-in"
+                        className="rounded-md object-cover"
                         data-ai-hint={currentImageToDisplay['data-ai-hint']}
-                        onError={(e) => { 
+                        onError={(e) => {
                           console.error(`Slideshow Image failed to load: ${currentImageToDisplay.src}`, e);
-                          if (currentLandscapeIndex === 0 && aiMapDetails.status !== 'error') { 
-                            setAiMapDetails({ 
+                          if (currentLandscapeIndex === 0 && aiMapDetails.status !== 'error') {
+                            setAiMapDetails({
                                 status: 'error',
                                 data: errorAiMapPlaceholder,
                                 errorMessage: `Image source failed to load: ${currentImageToDisplay.src}`
@@ -531,13 +542,7 @@ export default function DashboardPage() {
         </Card>
       )}
       <style jsx global>{`
-        .animate-fade-in {
-          animation: fadeIn 0.5s ease-in-out;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0.7; }
-          to { opacity: 1; }
-        }
+        /* Removed custom animate-fade-in CSS */
       `}</style>
     </div>
   );
