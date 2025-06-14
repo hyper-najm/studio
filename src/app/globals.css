@@ -89,8 +89,3 @@
     @apply bg-background text-foreground;
   }
 }
-
-/* TEMPORARY DIAGNOSTIC STYLE */
-body {
-  background-color: red !important; 
-}
