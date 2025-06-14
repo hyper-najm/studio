@@ -8,11 +8,11 @@ export default function AutonomousResponderPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Bot />Autonomous AI Responder & Guardian (Vision)</CardTitle>
+          <CardTitle className="flex items-center gap-2"><Bot />Autonomous AI Responder & Guardian</CardTitle>
           <CardDescription>
-            CyberGuardian Pro's Autonomous Responder is an AI-driven system envisioned to operate independently to manage and neutralize security incidents. It would intelligently analyze threats, execute pre-defined and adaptive response workflows (like isolating systems or blocking malicious IPs), alert personnel with detailed educational reports, and learn from each event to improve future responses. 
+            CyberGuardian Pro's Autonomous Responder is an AI-driven system envisioned to operate independently to manage and neutralize security incidents. It would intelligently analyze threats, execute pre-defined and adaptive response workflows, alert personnel with detailed educational reports, and learn from each event to improve future responses. 
             <br />
-            <strong className="text-primary mt-1 block">Please note: The core Autonomous AI Responder system is currently under intensive development and will be available soon. The information here outlines our vision.</strong>
+            <strong className="text-primary mt-1 block">Please note: The core Autonomous AI Responder system is under intensive development and will be available soon. The information here outlines our vision.</strong>
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center text-center">
