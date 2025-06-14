@@ -36,7 +36,7 @@ const mainNavItems: NavItem[] = [
   { href: '/knowledge-base', label: 'Knowledge Base', icon: BookText },
   { href: '/malware-detector', label: 'Malware Detector', icon: ShieldX },
   { href: '/system-analyzer', label: 'System Analyzer', icon: ServerCog },
-  { href: '/report-summarizer', label: 'Report Analyzer', icon: ScrollText }, // "Report Analyzer" sounds more encompassing
+  { href: '/report-summarizer', label: 'Report Analyzer', icon: ScrollText },
   { href: '/originality-checker', label: 'Originality Checker', icon: ClipboardCheck },
   { href: '/predictive-sentinel', label: 'Predictive Sentinel', icon: Activity },
   { href: '/autonomous-responder', label: 'Autonomous Responder', icon: ShieldAlert },
@@ -83,5 +83,3 @@ export function SidebarNav() {
     </div>
   );
 }
-
-    
