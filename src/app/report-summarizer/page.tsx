@@ -119,7 +119,7 @@ export default function ReportSummarizerPage() {
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     let textContent = '';
     for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await page.getPage(i);
+      const page = await pdf.getPage(i);
       const text = await page.getTextContent();
       textContent += text.items.map(item => ('str' in item ? item.str : '')).join(' ') + '\n';
     }
@@ -303,7 +303,7 @@ export default function ReportSummarizerPage() {
         </Form>
       </Card>
 
-      {errorState && !isLoading && ( // Show error only if not loading
+      {errorState && !isLoading && ( 
         <Alert variant="destructive" className="mt-6">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Error During Analysis</AlertTitle>
@@ -356,48 +356,53 @@ export default function ReportSummarizerPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Card className="p-4">
                             <CardTitle className="text-lg mb-2 flex items-center gap-2"><Percent className="h-5 w-5"/>Originality Score</CardTitle>
-                            <div className="text-4xl font-bold">{analysisResult.originalityScore}%</div>
-                            <Progress value={analysisResult.originalityScore} className="mt-2 h-3" />
+                            <div className="text-4xl font-bold">{analysisResult.originalityScore !== undefined ? `${analysisResult.originalityScore}%` : 'N/A'}</div>
+                            {analysisResult.originalityScore !== undefined && <Progress value={analysisResult.originalityScore} className="mt-2 h-3" />}
                         </Card>
                         <Card className="p-4">
                             <CardTitle className="text-lg mb-2 flex items-center gap-2"><FileQuestion className="h-5 w-5"/>Plagiarism Assessment</CardTitle>
-                            <Badge variant={getAssessmentBadgeVariant(analysisResult.plagiarismAssessment)} className="text-xl px-3 py-1">{analysisResult.plagiarismAssessment} Risk</Badge>
+                            <Badge variant={getAssessmentBadgeVariant(analysisResult.plagiarismAssessment)} className="text-xl px-3 py-1">{analysisResult.plagiarismAssessment || 'N/A'} Risk</Badge>
                         </Card>
                     </div>
                     
-                    <Card className="p-4">
-                        <CardTitle className="text-lg mb-2 flex items-center gap-2">
-                        {analysisResult.aiGenerationAssessment.isLikelyAi ? <Bot className="h-5 w-5 text-destructive" /> : <UserCheck className="h-5 w-5 text-green-500" />}
-                        AI-Generated Content Detection
-                        </CardTitle>
-                        <div className="mb-2">
-                        {analysisResult.aiGenerationAssessment.isLikelyAi ? (
-                            <p className="text-destructive font-semibold">Assessed as Likely AI-Generated</p>
-                        ) : (
-                            <p className="text-green-500 font-semibold">Assessed as Likely Human-Written</p>
-                        )}
-                        </div>
-                        <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium">
-                            {analysisResult.aiGenerationAssessment.isLikelyAi ? "AI Generation Likelihood:" : "Human Authorship Likelihood:"}
-                        </span>
-                        <span className="text-lg font-bold">{analysisResult.aiGenerationAssessment.confidenceScore}%</span>
-                        </div>
-                        <Progress 
-                            value={analysisResult.aiGenerationAssessment.confidenceScore} 
-                            className={`h-2 ${analysisResult.aiGenerationAssessment.isLikelyAi ? "[&>div]:bg-destructive" : "[&>div]:bg-green-500"}`} 
-                        />
-                        {analysisResult.aiGenerationAssessment.assessmentExplanation && (
-                        <p className="text-xs text-muted-foreground mt-2 whitespace-pre-wrap">
-                            <strong className="font-medium">AI Explanation:</strong> {analysisResult.aiGenerationAssessment.assessmentExplanation}
-                        </p>
-                        )}
-                    </Card>
+                    {analysisResult.aiGenerationAssessment && (
+                      <Card className="p-4">
+                          <CardTitle className="text-lg mb-2 flex items-center gap-2">
+                          {analysisResult.aiGenerationAssessment.isLikelyAi ? <Bot className="h-5 w-5 text-destructive" /> : <UserCheck className="h-5 w-5 text-green-500" />}
+                          AI-Generated Content Detection
+                          </CardTitle>
+                          <div className="mb-2">
+                          {analysisResult.aiGenerationAssessment.isLikelyAi ? (
+                              <p className="text-destructive font-semibold">Assessed as Likely AI-Generated</p>
+                          ) : (
+                              <p className="text-green-500 font-semibold">Assessed as Likely Human-Written</p>
+                          )}
+                          </div>
+                          <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-medium">
+                              {analysisResult.aiGenerationAssessment.isLikelyAi ? "AI Generation Likelihood:" : "Human Authorship Likelihood:"}
+                          </span>
+                          <span className="text-lg font-bold">{analysisResult.aiGenerationAssessment.confidenceScore !== undefined ? `${analysisResult.aiGenerationAssessment.confidenceScore}%` : 'N/A'}</span>
+                          </div>
+                          {analysisResult.aiGenerationAssessment.confidenceScore !== undefined && 
+                            <Progress 
+                                value={analysisResult.aiGenerationAssessment.confidenceScore} 
+                                className={`h-2 ${analysisResult.aiGenerationAssessment.isLikelyAi ? "[&>div]:bg-destructive" : "[&>div]:bg-green-500"}`} 
+                            />
+                          }
+                          {analysisResult.aiGenerationAssessment.assessmentExplanation && (
+                          <p className="text-xs text-muted-foreground mt-2 whitespace-pre-wrap">
+                              <strong className="font-medium">AI Explanation:</strong> {analysisResult.aiGenerationAssessment.assessmentExplanation}
+                          </p>
+                          )}
+                      </Card>
+                    )}
+
 
                     <div>
                         <h3 className="font-semibold text-lg mb-2 flex items-center gap-2"><Activity className="h-5 w-5"/>Originality Assessment Summary:</h3>
                         <Alert variant="default" className="bg-muted/30 border-muted-foreground/20">
-                            <AlertDescription className="whitespace-pre-wrap">{analysisResult.originalityAssessmentSummary}</AlertDescription>
+                            <AlertDescription className="whitespace-pre-wrap">{analysisResult.originalityAssessmentSummary || 'No summary provided.'}</AlertDescription>
                         </Alert>
                     </div>
 
@@ -427,7 +432,7 @@ export default function ReportSummarizerPage() {
                     <div>
                         <h3 className="font-semibold text-lg mb-2">Summary of Input Text (Overall):</h3>
                         <div className="p-3 rounded-md border bg-muted/30 text-sm max-h-60 overflow-y-auto">
-                        <p className="whitespace-pre-wrap">{analysisResult.summarizedInputText}</p>
+                        <p className="whitespace-pre-wrap">{analysisResult.summarizedInputText || 'No overall summary provided.'}</p>
                         </div>
                     </div>
 
@@ -445,7 +450,7 @@ export default function ReportSummarizerPage() {
                     </div>
                     <div>
                         <h3 className="font-semibold text-lg mb-2">Originality Analysis Confidence:</h3>
-                        <Badge variant={getConfidenceBadgeVariant(analysisResult.originalityAnalysisConfidence)} className="text-md px-3 py-1">{analysisResult.originalityAnalysisConfidence}</Badge>
+                        <Badge variant={getConfidenceBadgeVariant(analysisResult.originalityAnalysisConfidence)} className="text-md px-3 py-1">{analysisResult.originalityAnalysisConfidence || 'N/A'}</Badge>
                     </div>
                 </div>
             </section>
@@ -455,5 +460,3 @@ export default function ReportSummarizerPage() {
     </div>
   );
 }
-
-    
