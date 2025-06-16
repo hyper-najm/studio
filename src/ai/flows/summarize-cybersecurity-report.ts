@@ -60,7 +60,7 @@ const prompt = ai.definePrompt({
   input: {schema: SummarizeCybersecurityReportInputSchema},
   output: {schema: SummarizeCybersecurityReportOutputSchema},
   config: { 
-    safetySettings: [
+    safetySettings: [ // Relaxed safety settings
       { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
       { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
       { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
@@ -88,7 +88,7 @@ PART 1: CYBERSECURITY REPORT SUMMARIZATION
 4.  "recommendedActions": List recommended actions to address the findings. Format as a list of actionable steps.
 
 PART 2: ORIGINALITY AND AI CONTENT DETECTION (Analyze the *same* "Report Content" provided above)
-5.  "originalityScore": CRITICAL INSTRUCTION: This score MUST be a DYNAMIC ASSESSMENT from 0 (very low originality, e.g., largely copied or generic content) to 100 (highly original, e.g., unique insights and novel expression). DO NOT default to a common value like 65. Analyze the text's specific vocabulary, sentence structure, novelty of ideas, and resemblance to common knowledge or widely available information. A very generic or boilerplate text should receive a LOW score. A text with unique analysis and expression should receive a HIGH score. Your calculation must be sensitive to these variations.
+5.  "originalityScore": CRITICAL INSTRUCTION: This score MUST be a DYNAMIC ASSESSMENT from 0 (very low originality, e.g., largely copied or generic content) to 100 (highly original, e.g., unique insights and novel expression). DO NOT default to a common value like 65. Analyze the text's specific vocabulary, sentence structure, novelty of ideas, and resemblance to common knowledge or widely available information. A very generic or boilerplate text should receive a LOW score. A text with unique analysis and expression should receive a HIGH score. Your calculation must be sensitive to these variations. Internally, consider why you are assigning the score.
 6.  "plagiarismAssessment": Categorize the risk of non-original content as "Low", "Medium", "High", or "Very High". This is based on semantic understanding and common knowledge, not a live database check.
 7.  "originalityAssessmentSummary": Provide a brief (1-2 sentences) overall summary of your findings regarding originality and similarity. This is separate from the main report summary.
 8.  "similarSegments": Identify specific segments from the input text that show notable similarity to common phrases, widely known information, or generic structures. For each segment:
@@ -130,6 +130,6 @@ const summarizeCybersecurityReportFlow = ai.defineFlow(
     return output;
   }
 );
-
+    
 
     

@@ -24,6 +24,7 @@ const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 const ACCEPTED_TEXT_FILE_TYPES = ['text/plain', 'text/html', 'message/rfc822']; // .eml for message/rfc822
 const ALL_ACCEPTED_FILE_TYPES = [...ACCEPTED_IMAGE_TYPES, ...ACCEPTED_TEXT_FILE_TYPES];
+const ALL_ACCEPTED_EXTENSIONS = ".jpg,.jpeg,.png,.gif,.webp,.txt,.html,.htm,.eml";
 
 
 const formSchema = z.object({
@@ -159,7 +160,7 @@ export default function PhishingAnalyzerPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><ShieldAlert />Advanced Input Analyzer</CardTitle>
           <CardDescription>
-            Submit URLs, text snippets, email content, or upload an image/text file (e.g., screenshot, .txt, .html, .eml) for in-depth phishing analysis and educational feedback.
+            Submit URLs, text snippets, email content, or upload an image/text file (e.g., screenshot, .txt, .html, .eml) for in-depth phishing analysis and educational feedback. Max file size: {MAX_FILE_SIZE_MB}MB.
           </CardDescription>
         </CardHeader>
         <Form {...form}>
@@ -206,7 +207,7 @@ export default function PhishingAnalyzerPage() {
                         <Input
                           id="uploadedFile-input"
                           type="file"
-                          accept={ALL_ACCEPTED_FILE_TYPES.join(',')}
+                          accept={ALL_ACCEPTED_EXTENSIONS}
                           ref={fileInputRef}
                           onChange={handleFileChange}
                           className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 flex-grow"

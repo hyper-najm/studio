@@ -47,7 +47,7 @@ export async function analyzePhishingAttempt(input: AnalyzePhishingAttemptInput)
   try {
     return await _analyzePhishingAttempt(input);
   } catch (error) {
-    console.error("Error in analyzePhishingAttempt action:", error);
+    // console.error("Error in analyzePhishingAttempt action:", error); // Logging handled by flow
     if (error instanceof Error) {
       throw new Error(error.message); // Propagate specific error message
     }
@@ -59,7 +59,7 @@ export async function generateSecurityAwarenessTip(input: GenerateSecurityAwaren
   try {
     return await _generateSecurityAwarenessTip(input);
   } catch (error) {
-    console.error("Error in generateSecurityAwarenessTip action:", error);
+    // console.error("Error in generateSecurityAwarenessTip action:", error);
     if (error instanceof Error) {
       throw new Error(error.message);
     }
@@ -71,7 +71,7 @@ export async function queryCybersecurityKnowledgeBase(input: QueryCybersecurityK
   try {
     return await _queryCybersecurityKnowledgeBase(input);
   } catch (error) {
-    console.error("Error in queryCybersecurityKnowledgeBase action:", error);
+    // console.error("Error in queryCybersecurityKnowledgeBase action:", error);
     if (error instanceof Error) {
       throw new Error(error.message);
     }
@@ -83,7 +83,7 @@ export async function summarizeCybersecurityReport(input: SummarizeCybersecurity
   try {
     return await _summarizeCybersecurityReport(input);
   } catch (error) {
-    console.error("Error in summarizeCybersecurityReport action:", error);
+    // console.error("Error in summarizeCybersecurityReport action:", error);
     if (error instanceof Error) {
       throw new Error(error.message);
     }
@@ -95,7 +95,7 @@ export async function analyzeMalware(input: AnalyzeMalwareInput): Promise<Analyz
   try {
     return await _analyzeMalware(input);
   } catch (error) {
-    console.error("Error in analyzeMalware action:", error);
+    // console.error("Error in analyzeMalware action:", error);
     if (error instanceof Error) {
         throw new Error(error.message);
     }
@@ -107,7 +107,7 @@ export async function analyzeSystemConfiguration(input: AnalyzeSystemConfigurati
   try {
     return await _analyzeSystemConfiguration(input);
   } catch (error) {
-    console.error("Error in analyzeSystemConfiguration action:", error);
+    // console.error("Error in analyzeSystemConfiguration action:", error);
     if (error instanceof Error) {
       throw new Error(error.message);
     }
@@ -119,7 +119,7 @@ export async function generateGlobalThreatMapImage(): Promise<GenerateGlobalThre
   try {
     return await _generateGlobalThreatMapImage();
   } catch (error) {
-    console.error("Error in generateGlobalThreatMapImage action:", error);
+    // console.error("Error in generateGlobalThreatMapImage action:", error);
     if (error instanceof Error) {
       throw new Error(error.message);
     }
@@ -132,10 +132,12 @@ export async function checkOriginalityReport(input: CheckOriginalityReportInput)
     return await _checkOriginalityReport(input);
   } catch (error)
 {
-    console.error("Error in checkOriginalityReport action:", error);
+    // console.error("Error in checkOriginalityReport action:", error);
     if (error instanceof Error) {
       throw new Error(error.message);
     }
     throw new Error('Failed to check originality. Please try again.');
   }
 }
+
+    
