@@ -5,17 +5,18 @@ import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getAuth, type Auth } from 'firebase/auth';
 
 // Your web app's Firebase configuration
-// IMPORTANT: For actual deployments, use environment variables for this sensitive information.
-// These NEXT_PUBLIC_ environment variables should be set in your deployment environment (e.g., Vercel, Netlify, Firebase Hosting).
-// The fallback strings "YOUR_API_KEY", etc., are placeholders and will not work for a real Firebase project.
-// If you are seeing 'auth/api-key-not-valid' errors, it means NEXT_PUBLIC_FIREBASE_API_KEY is missing or invalid in your environment.
+// IMPORTANT: The following configuration uses hardcoded values provided by the user.
+// For production deployments, it is STRONGLY RECOMMENDED to use environment variables
+// to protect sensitive information like API keys and to allow for different configurations
+// (development, staging, production) without code changes.
+// If this code is ever made public (e.g., in a public Git repository), these keys will be exposed.
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "YOUR_API_KEY",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "YOUR_PROJECT_ID",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "YOUR_SENDER_ID",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "YOUR_APP_ID"
+  apiKey: "AIzaSyBqujxRIfv9OdkGeTucopHEi1tI78Q1b-0",
+  authDomain: "cyberguardian-pro.firebaseapp.com",
+  projectId: "cyberguardian-pro",
+  storageBucket: "cyberguardian-pro.firebasestorage.app", // Corrected from firebasestorage.app to firebaseapp.com if it was a typo, or keep as is if 'firebasestorage.app' is correct. Assuming user input is correct.
+  messagingSenderId: "560423206473",
+  appId: "1:560423206473:web:f145bb45972e7c310f4998"
 };
 
 // Initialize Firebase
