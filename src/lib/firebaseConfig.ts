@@ -14,7 +14,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyBqujxRIfv9OdkGeTucopHEi1tI78Q1b-0",
   authDomain: "cyberguardian-pro.firebaseapp.com",
   projectId: "cyberguardian-pro",
-  storageBucket: "cyberguardian-pro.firebasestorage.app", // Corrected from firebasestorage.app to firebaseapp.com if it was a typo, or keep as is if 'firebasestorage.app' is correct. Assuming user input is correct.
+  storageBucket: "cyberguardian-pro.firebasestorage.app",
   messagingSenderId: "560423206473",
   appId: "1:560423206473:web:f145bb45972e7c310f4998"
 };
