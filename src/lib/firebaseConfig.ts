@@ -8,6 +8,7 @@ import { getAuth, type Auth } from 'firebase/auth';
 // IMPORTANT: For actual deployments, use environment variables for this sensitive information.
 // These NEXT_PUBLIC_ environment variables should be set in your deployment environment (e.g., Vercel, Netlify, Firebase Hosting).
 // The fallback strings "YOUR_API_KEY", etc., are placeholders and will not work for a real Firebase project.
+// If you are seeing 'auth/api-key-not-valid' errors, it means NEXT_PUBLIC_FIREBASE_API_KEY is missing or invalid in your environment.
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "YOUR_API_KEY",
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "YOUR_PROJECT_ID.firebaseapp.com",
@@ -29,5 +30,4 @@ const db: Firestore = getFirestore(app);
 const auth: Auth = getAuth(app);
 
 export { app, db, auth };
-
     
