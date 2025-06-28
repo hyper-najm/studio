@@ -3,7 +3,7 @@
 
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { UserCircle, Bell, Globe, Mic, Settings, LogOut, Loader2, LogIn } from 'lucide-react'; 
+import { UserCircle, Bell, Globe, Mic, Settings, LogOut, Loader2, LogIn, UserCog } from 'lucide-react'; 
 import { usePathname } from 'next/navigation'; 
 import Link from 'next/link'; 
 import {
@@ -38,6 +38,8 @@ const getPageTitle = (pathname: string): string => {
       return 'Autonomous Responder';
     case '/settings':
       return 'Settings';
+    case '/admin':
+      return 'Admin Dashboard';
     case '/login':
       return 'Login / Sign Up'; // Updated title
     default:
@@ -99,6 +101,12 @@ export function Header() {
                   {user.displayName || user.email || "My Account"}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/admin">
+                    <UserCog className="mr-2 h-4 w-4" />
+                    <span>Admin</span>
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/settings">
                     <Settings className="mr-2 h-4 w-4" />

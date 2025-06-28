@@ -20,6 +20,7 @@ import {
   ScrollText,
   Settings,
   ClipboardCheck, 
+  UserCog,
   LucideIcon,
 } from 'lucide-react';
 
@@ -43,6 +44,7 @@ const mainNavItems: NavItem[] = [
 ];
 
 const utilityNavItems: NavItem[] = [
+  { href: '/admin', label: 'Admin', icon: UserCog, bottom: true },
   { href: '/settings', label: 'Settings', icon: Settings, bottom: true },
 ];
 
