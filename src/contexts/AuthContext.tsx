@@ -114,13 +114,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       router.push('/');
     } catch (error: any) {
-      console.error(`Error signing in with ${providerName}:`, error);
-      let description = error.message || `Could not sign in with ${providerName}.`;
-      // Handle common errors for better UX
-      if (error.code === 'auth/account-exists-with-different-credential') {
-        description = "An account already exists with the same email address but different sign-in credentials. Try signing in with the original method.";
+      // Don't show an error toast if the user intentionally closed the popup.
+      if (error.code === 'auth/popup-closed-by-user') {
+        console.log('Sign-in popup closed by user.');
+      } else {
+        console.error(`Error signing in with ${providerName}:`, error);
+        let description = error.message || `Could not sign in with ${providerName}.`;
+        // Handle common errors for better UX
+        if (error.code === 'auth/account-exists-with-different-credential') {
+          description = "An account already exists with the same email address but different sign-in credentials. Try signing in with the original method.";
+        }
+        toast({ variant: "destructive", title: `${providerName} Sign-In Failed`, description });
       }
-      toast({ variant: "destructive", title: `${providerName} Sign-In Failed`, description });
       setLoading(false);
     }
   };
