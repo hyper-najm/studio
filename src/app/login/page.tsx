@@ -46,7 +46,7 @@ const signUpSchema = z.object({
 type SignUpFormData = z.infer<typeof signUpSchema>;
 
 export default function LoginPage() {
-  const { logIn, signUp, loading: authLoading } = useAuth();
+  const { logIn, signUp, signInWithGoogle, signInWithGitHub, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("login");
 
@@ -228,12 +228,12 @@ export default function LoginPage() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3 mt-4">
-            <Button variant="outline" className="w-full py-3 text-base" onClick={() => toast({title: "Social Login", description: "Google Sign-In coming soon!"})} disabled={isSubmitting}>
-              <GoogleIcon />
+            <Button variant="outline" className="w-full py-3 text-base" onClick={signInWithGoogle} disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin"/> : <GoogleIcon />}
               <span className="ml-2">Google</span>
             </Button>
-            <Button variant="outline" className="w-full py-3 text-base" onClick={() => toast({title: "Social Login", description: "GitHub Sign-In coming soon!"})} disabled={isSubmitting}>
-              <GithubIcon />
+            <Button variant="outline" className="w-full py-3 text-base" onClick={signInWithGitHub} disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin"/> : <GithubIcon />}
               <span className="ml-2">GitHub</span>
             </Button>
           </div>
