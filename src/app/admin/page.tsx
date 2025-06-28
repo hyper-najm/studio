@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { UserCog, BarChart2, ShieldWarning, Users } from "lucide-react";
+import { UserCog, BarChart2, ShieldAlert, Users } from "lucide-react";
 
 // This is placeholder data. In a real application, you would fetch this from your database.
 const sampleUsers = [
@@ -27,7 +27,7 @@ export default function AdminPage() {
         </CardHeader>
         <CardContent>
           <Alert variant="destructive" className="mb-6">
-            <ShieldWarning className="h-4 w-4" />
+            <ShieldAlert className="h-4 w-4" />
             <AlertTitle>Security Notice</AlertTitle>
             <AlertDescription>
               This page is currently accessible to all logged-in users. For production use, it is critical to implement Role-Based Access Control (RBAC) to ensure only authorized administrators can access this dashboard.
