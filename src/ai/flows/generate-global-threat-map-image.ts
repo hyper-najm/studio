@@ -10,10 +10,6 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-// No specific input needed for this version, but schema can be added for future customization
-// const GenerateGlobalThreatMapImageInputSchema = z.object({});
-// export type GenerateGlobalThreatMapImageInput = z.infer<typeof GenerateGlobalThreatMapImageInputSchema>;
-
 const GenerateGlobalThreatMapImageOutputSchema = z.object({
   imageDataUri: z.string().describe('The generated image of the global threat map as a data URI.'),
 });
@@ -21,9 +17,6 @@ export type GenerateGlobalThreatMapImageOutput = z.infer<typeof GenerateGlobalTh
 
 // Wrapper function
 export async function generateGlobalThreatMapImage(): Promise<GenerateGlobalThreatMapImageOutput> {
-  // Pass an empty object if an input schema is defined but not currently used for this specific call
-  // For example, if GenerateGlobalThreatMapImageInputSchema were defined:
-  // return generateGlobalThreatMapImageFlow({} as GenerateGlobalThreatMapImageInput);
   return generateGlobalThreatMapImageFlow(undefined);
 }
 
@@ -31,13 +24,12 @@ export async function generateGlobalThreatMapImage(): Promise<GenerateGlobalThre
 const generateGlobalThreatMapImageFlow = ai.defineFlow(
   {
     name: 'generateGlobalThreatMapImageFlow',
-    // inputSchema: GenerateGlobalThreatMapImageInputSchema, // Uncomment if input schema is used
     outputSchema: GenerateGlobalThreatMapImageOutputSchema,
   },
-  async () => { // Input parameter removed as it's not used for this basic version
+  async () => { 
     const generationResult = await ai.generate({
-      model: 'googleai/gemini-2.0-flash-exp', // IMPORTANT: Use this model for image generation
-      prompt: `Generate a dark-themed, futuristic, high-resolution world map visualizing global cyber threats. Suitable for a cybersecurity dashboard.`, // Further simplified prompt
+      model: 'googleai/gemini-2.0-flash-preview-image-generation', // IMPORTANT: This is the correct model for image generation.
+      prompt: `Generate a dark-themed, futuristic, high-resolution world map visualizing global cyber threats. The map should have glowing lines connecting various continents, representing data flows and potential attack vectors. Use a color palette with deep blues, electric cyan, and hints of red to indicate hotspots. This image is for a cybersecurity dashboard and should look professional and high-tech.`,
       config: {
         responseModalities: ['TEXT', 'IMAGE'], // MUST provide both TEXT and IMAGE
         safetySettings: [
@@ -78,4 +70,3 @@ const generateGlobalThreatMapImageFlow = ai.defineFlow(
     return { imageDataUri: media.url };
   }
 );
-

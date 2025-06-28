@@ -17,7 +17,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription as UiAlertDescription } from "@/components/ui/alert"; // Renamed to avoid conflict
+import { Alert, AlertDescription as UiAlertDescription } from "@/components/ui/alert";
 import { generateGlobalThreatMapImage } from "@/lib/actions";
 
 const sampleEventTemplates = [
@@ -127,7 +127,7 @@ const shuffleArray = <T>(array: T[]): T[] => {
 };
 
 const NUMBER_OF_INSIGHTS_TO_DISPLAY = 3;
-const INSIGHTS_INTERVAL_MS = 15000; // Increased interval for insights
+const INSIGHTS_INTERVAL_MS = 15000;
 const DATA_REFRESH_INTERVAL_MS = 30000;
 
 export default function DashboardPage() {
@@ -380,7 +380,7 @@ export default function DashboardPage() {
                             setAiMapDetails({ 
                                 status: 'error',
                                 data: errorAiMapPlaceholder,
-                                errorMessage: `Image source failed to load: ${currentImageToDisplay.src}. Displaying placeholder.`
+                                errorMessage: `Image source failed to load. Displaying placeholder.`
                             });
                           }
                         }}
@@ -434,7 +434,7 @@ export default function DashboardPage() {
              <Alert variant="destructive" className="mt-4">
                 <ServerCrash className="h-4 w-4" />
                  <AlertTitle>AI Map Generation Issue</AlertTitle>
-                <UiAlertDescription> {/* Use aliased AlertDescription */}
+                <UiAlertDescription>
                   The AI Global Threat Map could not be generated successfully. A placeholder is being shown.
                   {aiMapDetails.errorMessage && ` (Details: ${aiMapDetails.errorMessage})`}
                 </UiAlertDescription>
@@ -461,4 +461,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-    
