@@ -1,3 +1,4 @@
+
 'use client';
 
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -33,8 +34,6 @@ const getPageTitle = (pathname: string): string => {
       return 'Report Summarizer';
     case '/predictive-sentinel':
       return 'Predictive Sentinel';
-    case '/autonomous-responder':
-      return 'Autonomous Responder';
     case '/settings':
       return 'Settings';
     case '/admin':

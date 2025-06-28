@@ -40,7 +40,6 @@ const mainNavItems: NavItem[] = [
   { href: '/report-summarizer', label: 'Report Analyzer', icon: ScrollText },
   { href: '/originality-checker', label: 'Originality Checker', icon: ClipboardCheck },
   { href: '/predictive-sentinel', label: 'Predictive Sentinel', icon: Activity },
-  { href: '/autonomous-responder', label: 'Autonomous Responder', icon: ShieldAlert },
 ];
 
 const utilityNavItems: NavItem[] = [

@@ -53,18 +53,6 @@ export default function PredictiveSentinelPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Activity className="text-primary"/>Predictive Sentinel</CardTitle>
-          <CardDescription>
-            The Predictive Sentinel aims to use advanced machine learning to anticipate and forecast potential cyberattacks.
-            <strong className="text-primary mt-1 block">The core predictive engine is under intensive development and will be available soon.</strong>
-            <br />
-            In the meantime, you can use our AI-powered Security Awareness Tip Generator below to get instant educational insights.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-
-      <Card>
-        <CardHeader>
           <CardTitle className="flex items-center gap-2"><Lightbulb className="text-yellow-400"/>AI Security Awareness Tip Generator</CardTitle>
           <CardDescription>Get instant, AI-powered educational security tips on various topics to enhance your awareness.</CardDescription>
         </CardHeader>
