@@ -1,14 +1,14 @@
-
 // src/services/userService.ts
 import { db } from '@/lib/firebaseConfig';
 import { doc, setDoc, serverTimestamp, getDoc, Timestamp } from 'firebase/firestore';
 
 const USERS_COLLECTION = 'users';
 
-export interface UserProfile {
-  uid: string;
+// This interface defines the data stored *inside* a user's document in Firestore.
+// The document ID itself is the user's UID from Authentication.
+export interface UserProfileData {
   email: string;
-  displayName?: string;
+  displayName: string;
   createdAt: Timestamp;
   lastLogin?: Timestamp;
 }
@@ -28,13 +28,14 @@ export async function createUserProfile(uid: string, data: Omit<CreateUserProfil
     const docSnap = await getDoc(userDocRef);
 
     if (!docSnap.exists()) {
-      const userProfile: Partial<UserProfile> = {
-        uid,
+      // Structure the data to be saved in Firestore, including the server-generated timestamp.
+      const userProfile: UserProfileData = {
         email: data.email,
         displayName: data.displayName || data.email.split('@')[0], // Default display name
         createdAt: serverTimestamp() as Timestamp, // Set creation time only for new users
         lastLogin: serverTimestamp() as Timestamp,
       };
+      // Save the document to Firestore with the UID as the ID.
       await setDoc(userDocRef, userProfile);
       console.log(`User profile created for UID: ${uid}`);
     } else {
@@ -52,12 +53,12 @@ export async function createUserProfile(uid: string, data: Omit<CreateUserProfil
   }
 }
 
-export async function getUserProfile(uid: string): Promise<UserProfile | null> {
+export async function getUserProfile(uid: string): Promise<UserProfileData | null> {
   try {
     const userDocRef = doc(db, USERS_COLLECTION, uid);
     const docSnap = await getDoc(userDocRef);
     if (docSnap.exists()) {
-      return docSnap.data() as UserProfile;
+      return docSnap.data() as UserProfileData;
     }
     return null;
   } catch (error) {
