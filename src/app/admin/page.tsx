@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { UserCog, BarChart2, ShieldAlert, Users } from "lucide-react";
+import { UserCog, ShieldAlert, Users, UserCheck, UserX } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 // This is placeholder data. In a real application, you would fetch this from your database.
@@ -31,6 +31,11 @@ export default function AdminPage() {
     };
     return [adminUser, ...otherSampleUsers];
   }, [user]);
+
+  // Calculate analytics from the user data
+  const activeUsers = useMemo(() => sampleUsers.filter(u => u.status === 'Active').length, [sampleUsers]);
+  const inactiveUsers = useMemo(() => sampleUsers.filter(u => u.status === 'Inactive').length, [sampleUsers]);
+
 
   return (
     <div className="space-y-6">
@@ -61,14 +66,24 @@ export default function AdminPage() {
                     <p className="text-xs text-muted-foreground">Currently registered in the system</p>
                 </CardContent>
             </Card>
-             <Card>
+            <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Analytics</CardTitle>
-                    <BarChart2 className="h-4 w-4 text-muted-foreground" />
+                    <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+                    <UserCheck className="h-4 w-4 text-green-500" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">Coming Soon</div>
-                    <p className="text-xs text-muted-foreground">Usage and AI token metrics</p>
+                    <div className="text-2xl font-bold">{activeUsers}</div>
+                    <p className="text-xs text-muted-foreground">Users with active status</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Inactive Users</CardTitle>
+                    <UserX className="h-4 w-4 text-destructive" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{inactiveUsers}</div>
+                    <p className="text-xs text-muted-foreground">Users with inactive status</p>
                 </CardContent>
             </Card>
           </div>

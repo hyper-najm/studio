@@ -1,4 +1,3 @@
-
 'use client';
 
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -112,10 +111,6 @@ export function Header() {
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Settings</span>
                   </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => toast({ title: "Profile", description: "Profile page coming soon. Access settings for now."})}>
-                    <UserCircle className="mr-2 h-4 w-4" />
-                    <span>Profile (Soon)</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={logOut} disabled={authLoading}>
