@@ -12,7 +12,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShieldHalf, LogIn, UserPlus, Loader2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
@@ -22,6 +21,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Placeholder for social icons - you'd typically use an icon library or SVGs
 const GoogleIcon = () => <svg viewBox="0 0 24 24" className="h-5 w-5"><path fill="currentColor" d="M21.35,11.1H12.18V13.83H18.69C18.36,17.64 15.19,19.27 12.19,19.27C8.36,19.27 5,16.25 5,12C5,7.9 8.2,4.73 12.19,4.73C14.03,4.73 15.69,5.36 16.95,6.57L19.03,4.5C17.22,2.78 14.91,1.73 12.19,1.73C6.91,1.73 2.73,6.35 2.73,12C2.73,17.64 6.91,22.27 12.19,22.27C17.73,22.27 21.5,18.33 21.5,12.91C21.5,12.24 21.45,11.67 21.35,11.1V11.1Z" /></svg>;
@@ -61,15 +61,32 @@ export default function LoginPage() {
   });
 
   const handleLoginSubmit: SubmitHandler<LoginFormData> = async (data) => {
-    await logIn(data.email, data.password);
+    try {
+      await logIn(data.email, data.password);
+    } catch (error: any) {
+      let errorMessage = "An unexpected error occurred. Please try again.";
+      if (error.message) {
+        // Clean up common Firebase error messages
+        errorMessage = error.message.replace(/Firebase: Error \((auth\/.*?)\)\.?/, '$1').replace(/-/g, ' ');
+      }
+      loginForm.setError("root.serverError", { message: errorMessage });
+    }
   };
 
   const handleSignUpSubmit: SubmitHandler<SignUpFormData> = async (data) => {
-    await signUp({ 
-      email: data.email, 
-      password: data.password, 
-      displayName: data.displayName 
-    });
+    try {
+      await signUp({ 
+        email: data.email, 
+        password: data.password, 
+        displayName: data.displayName 
+      });
+    } catch (error: any) {
+      let errorMessage = "An unexpected error occurred. Please try again.";
+      if (error.message) {
+        errorMessage = error.message.replace(/Firebase: Error \((auth\/.*?)\)\.?/, '$1').replace(/-/g, ' ');
+      }
+      signUpForm.setError("root.serverError", { message: errorMessage });
+    }
   };
 
   const isSubmitting = loginForm.formState.isSubmitting || signUpForm.formState.isSubmitting || authLoading;
@@ -100,7 +117,16 @@ export default function LoginPage() {
           <TabsContent value="login">
             <Form {...loginForm}>
               <form onSubmit={loginForm.handleSubmit(handleLoginSubmit)}>
-                <CardContent className="space-y-6 px-6 pb-6">
+                <CardContent className="space-y-4 px-6 pb-6">
+                   {loginForm.formState.errors.root?.serverError && (
+                    <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Login Failed</AlertTitle>
+                        <AlertDescription className="capitalize">
+                            {loginForm.formState.errors.root.serverError.message}
+                        </AlertDescription>
+                    </Alert>
+                  )}
                   <FormField
                     control={loginForm.control}
                     name="email"
@@ -153,7 +179,16 @@ export default function LoginPage() {
           <TabsContent value="signup">
             <Form {...signUpForm}>
               <form onSubmit={signUpForm.handleSubmit(handleSignUpSubmit)}>
-                <CardContent className="space-y-6 px-6 pb-6">
+                <CardContent className="space-y-4 px-6 pb-6">
+                  {signUpForm.formState.errors.root?.serverError && (
+                    <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Sign Up Failed</AlertTitle>
+                        <AlertDescription className="capitalize">
+                            {signUpForm.formState.errors.root.serverError.message}
+                        </AlertDescription>
+                    </Alert>
+                  )}
                   <FormField
                     control={signUpForm.control}
                     name="displayName"

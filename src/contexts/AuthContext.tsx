@@ -50,8 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signUp = async (data: CreateUserProfileData): Promise<User | null> => {
     if (!data.displayName || data.displayName.trim() === '') {
-        toast({ variant: "destructive", title: "Sign Up Failed", description: "Display name is required." });
-        return null;
+        throw new Error("Display name is required.");
     }
     setLoading(true);
     try {
@@ -70,8 +69,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return user;
     } catch (error: any) {
       console.error("Error signing up:", error);
-      toast({ variant: "destructive", title: "Sign Up Failed", description: error.message || "Could not create account." });
-      return null;
+      throw error; // Re-throw the error to be handled by the form
     } finally {
       setLoading(false);
     }
@@ -87,8 +85,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return userCredential.user;
     } catch (error: any) {
       console.error("Error logging in:", error);
-      toast({ variant: "destructive", title: "Login Failed", description: error.message || "Invalid email or password." });
-      return null;
+      throw error; // Re-throw the error to be handled by the form
     } finally {
       setLoading(false);
     }
@@ -146,6 +143,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error: any) {
       console.error("Error logging out:", error);
       toast({ variant: "destructive", title: "Logout Failed", description: error.message || "Could not log out." });
+    } finally {
       setLoading(false);
     }
   };
