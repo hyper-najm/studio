@@ -41,10 +41,14 @@ export async function createUserProfile(uid: string, data: Omit<CreateUserProfil
        console.log(`User profile already exists for UID: ${uid}. Last login will be updated.`);
        await updateUserLastLogin(uid);
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating user profile: ", error);
-    // Depending on your error handling strategy, you might want to re-throw or handle differently
-    throw new Error("Failed to create user profile.");
+    // Check for a specific Firestore permission error
+    if (error.code === 'permission-denied') {
+      throw new Error("Permission Denied: Your Firestore security rules are preventing user profile creation. Please update your rules to allow authenticated users to write to their own document in the 'users' collection.");
+    }
+    // Fallback for other errors
+    throw new Error("Failed to create user profile in the database.");
   }
 }
 
@@ -66,8 +70,13 @@ export async function updateUserLastLogin(uid: string): Promise<void> {
   try {
     const userDocRef = doc(db, USERS_COLLECTION, uid);
     await setDoc(userDocRef, { lastLogin: serverTimestamp() }, { merge: true });
-  } catch (error) {
-    console.error("Error updating last login: ", error);
+  } catch (error: any) {
+    // Log a more specific warning for permission issues without stopping the login flow
+    if (error.code === 'permission-denied') {
+      console.warn(`Permission denied when updating last login for user ${uid}. Check Firestore security rules.`);
+    } else {
+      console.error("Error updating last login: ", error);
+    }
     // Gracefully handle, as this is not critical path for login
   }
 }
