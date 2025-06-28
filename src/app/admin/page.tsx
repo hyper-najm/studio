@@ -1,21 +1,37 @@
-
 'use client';
 
+import { useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { UserCog, BarChart2, ShieldAlert, Users } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 // This is placeholder data. In a real application, you would fetch this from your database.
-const sampleUsers = [
-  { id: 'user_1', name: 'Admin User', email: 'admin@example.com', role: 'Admin', status: 'Active', joined: '2024-05-01' },
+const otherSampleUsers = [
   { id: 'user_2', name: 'John Doe', email: 'john.d@example.com', role: 'User', status: 'Active', joined: '2024-05-15' },
   { id: 'user_3', name: 'Jane Smith', email: 'jane.s@example.com', role: 'User', status: 'Inactive', joined: '2024-05-20' },
   { id: 'user_4', name: 'Test User', email: 'test@example.com', role: 'User', status: 'Active', joined: '2024-06-10' },
 ];
 
 export default function AdminPage() {
+  const { user } = useAuth();
+
+  const sampleUsers = useMemo(() => {
+    const adminUser = {
+      id: user?.uid || 'user_1',
+      name: user?.displayName || 'Admin User',
+      email: user?.email || 'admin@example.com',
+      role: 'Admin',
+      status: 'Active',
+      joined: user?.metadata.creationTime 
+        ? new Date(user.metadata.creationTime).toISOString().split('T')[0] 
+        : '2024-05-01',
+    };
+    return [adminUser, ...otherSampleUsers];
+  }, [user]);
+
   return (
     <div className="space-y-6">
       <Card>
