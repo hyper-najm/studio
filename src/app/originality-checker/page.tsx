@@ -1,17 +1,10 @@
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import mammoth from 'mammoth';
-import * as pdfjsLib from 'pdfjs-dist';
-// Ensure worker is correctly configured for pdf.js
-if (typeof window !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
-}
-
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -78,6 +71,22 @@ export default function OriginalityCheckerPage() {
     resolver: zodResolver(formSchema),
     defaultValues: { textContent: '', uploadedFile: undefined },
   });
+  
+  // Setup worker on mount without blocking initial render
+  useEffect(() => {
+    const setupPdfWorker = async () => {
+        try {
+            // Dynamically import the library
+            const pdfjsLib = await import('pdfjs-dist/build/pdf.mjs');
+            // @ts-ignore
+            pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+        } catch (e) {
+            console.error("Error setting up PDF.js worker:", e);
+        }
+    };
+    setupPdfWorker();
+  }, []);
+
   const { setValue, watch, setError: setFormError, clearErrors: clearFormErrors } = form;
   const selectedFile = watch('uploadedFile');
 
@@ -114,19 +123,23 @@ export default function OriginalityCheckerPage() {
   };
 
   const extractTextFromDocx = async (file: File): Promise<string> => {
+    const mammoth = (await import('mammoth')).default;
     const arrayBuffer = await file.arrayBuffer();
     const result = await mammoth.extractRawText({ arrayBuffer });
     return result.value;
   };
 
   const extractTextFromPdf = async (file: File): Promise<string> => {
+    const pdfjsLib = await import('pdfjs-dist/build/pdf.mjs');
     const arrayBuffer = await file.arrayBuffer();
+    // @ts-ignore
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     let textContent = '';
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const text = await page.getTextContent();
-      textContent += text.items.map(item => ('str' in item ? item.str : '')).join(' ') + '\n';
+      // @ts-ignore
+      textContent += text.items.map(item => item.str || '').join(' ') + '\n';
     }
     return textContent;
   };
@@ -142,16 +155,20 @@ export default function OriginalityCheckerPage() {
       setFileProcessingMessage(`Processing ${submissionFileName}...`);
       try {
         let fileText = '';
-        if (data.uploadedFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') { // .docx
+        if (data.uploadedFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || data.uploadedFile.name.endsWith('.docx')) {
           fileText = await extractTextFromDocx(data.uploadedFile);
-        } else if (data.uploadedFile.type === 'application/pdf') { // .pdf
+        } else if (data.uploadedFile.type === 'application/pdf') {
           fileText = await extractTextFromPdf(data.uploadedFile);
+        } else if (data.uploadedFile.type === 'application/msword' || data.uploadedFile.name.endsWith('.doc')) {
+           toast({variant: "default", title: "Notice for .doc file", description: "Attempting text extraction for .doc. For best results, convert to .docx or paste content.", duration: 6000});
+           try {
+             fileText = await extractTextFromDocx(data.uploadedFile);
+           } catch (e) {
+             console.warn("Mammoth failed on .doc file, falling back to simple text extraction.", e);
+             fileText = await data.uploadedFile.text();
+           }
         } else if (ACCEPTED_MIME_TYPES.includes(data.uploadedFile.type) || data.uploadedFile.type.startsWith('text/')) { // other text-based
           fileText = await data.uploadedFile.text();
-        } else if (data.uploadedFile.type === 'application/msword') { // .doc
-           toast({variant: "default", title: "Notice for .doc file", description: "Attempting text extraction for .doc. For best results, convert to .docx or paste content.", duration: 6000});
-           // Basic attempt, might not work well for all .doc files
-           try { fileText = await data.uploadedFile.text(); } catch (e) { fileText = ""; /* ignore if text() fails for .doc */ }
         } else {
            // Fallback for other accepted types (like scripts if browser gives generic MIME)
            try { fileText = await data.uploadedFile.text(); } catch (e) {

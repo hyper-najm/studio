@@ -1,16 +1,10 @@
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import mammoth from 'mammoth';
-import * as pdfjsLib from 'pdfjs-dist';
-
-if (typeof window !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
-}
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -69,7 +63,6 @@ export default function ReportSummarizerPage() {
   const [fileNamePreview, setFileNamePreview] = useState<string | null>(null);
   const [fileProcessingMessage, setFileProcessingMessage] = useState<string | null>(null);
 
-
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -77,6 +70,22 @@ export default function ReportSummarizerPage() {
       reportFile: undefined,
     },
   });
+
+  // Setup worker on mount without blocking initial render
+  useEffect(() => {
+    const setupPdfWorker = async () => {
+        try {
+            // Dynamically import the library
+            const pdfjsLib = await import('pdfjs-dist/build/pdf.mjs');
+            // @ts-ignore
+            pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+        } catch (e) {
+            console.error("Error setting up PDF.js worker:", e);
+        }
+    };
+    setupPdfWorker();
+  }, []);
+
   const { setValue, watch, clearErrors: clearFormErrors, setError: setFormError } = form;
   const selectedFile = watch('reportFile');
 
@@ -99,7 +108,7 @@ export default function ReportSummarizerPage() {
       if (form.getValues("reportText")) {
         toast({ title: "File Selected", description: "Content from the uploaded file will be combined with your pasted text."});
       }
-       if (file.type === 'application/msword') { 
+       if (file.type === 'application/msword' || file.name.endsWith('.doc')) { 
         setFileProcessingMessage("Note: For .doc files, text extraction might be limited. Converting to .docx or pasting content is recommended for best results.");
       }
     } else {
@@ -109,19 +118,23 @@ export default function ReportSummarizerPage() {
   };
 
   const extractTextFromDocx = async (file: File): Promise<string> => {
+    const mammoth = (await import('mammoth')).default;
     const arrayBuffer = await file.arrayBuffer();
     const result = await mammoth.extractRawText({ arrayBuffer });
     return result.value;
   };
 
   const extractTextFromPdf = async (file: File): Promise<string> => {
+    const pdfjsLib = await import('pdfjs-dist/build/pdf.mjs');
     const arrayBuffer = await file.arrayBuffer();
+    // @ts-ignore
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     let textContent = '';
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const text = await page.getTextContent();
-      textContent += text.items.map(item => ('str' in item ? item.str : '')).join(' ') + '\n';
+      // @ts-ignore
+      textContent += text.items.map(item => item.str || '').join(' ') + '\n';
     }
     return textContent;
   };
@@ -136,13 +149,18 @@ export default function ReportSummarizerPage() {
       setFileProcessingMessage(`Processing ${fileNameForAI}...`);
       try {
         let fileText = '';
-        if (data.reportFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') { 
+        if (data.reportFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || data.reportFile.name.endsWith('.docx')) { 
           fileText = await extractTextFromDocx(data.reportFile);
         } else if (data.reportFile.type === 'application/pdf') { 
           fileText = await extractTextFromPdf(data.reportFile);
-        } else if (data.reportFile.type === 'application/msword') { 
+        } else if (data.reportFile.type === 'application/msword' || data.reportFile.name.endsWith('.doc')) {
            toast({variant: "default", title: "Notice for .doc file", description: "Attempting text extraction for .doc. For best results, convert to .docx or paste content.", duration: 7000});
-           try { fileText = await data.reportFile.text(); } catch (e) { fileText = ""; } 
+           try {
+             fileText = await extractTextFromDocx(data.reportFile);
+           } catch (e) {
+             console.warn("Mammoth failed on .doc file, falling back to simple text extraction.", e);
+             fileText = await data.reportFile.text();
+           }
         } else if (ACCEPTED_MIME_TYPES_REPORTS.includes(data.reportFile.type) || data.reportFile.type.startsWith('text/')) { 
           fileText = await data.reportFile.text();
         } else {
