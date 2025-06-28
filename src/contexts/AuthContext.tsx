@@ -3,7 +3,7 @@
 
 import type { ReactNode } from 'react';
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { type Auth, onAuthStateChanged, type User, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { type Auth, onAuthStateChanged, type User, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
 import { auth } from '@/lib/firebaseConfig';
 import { createUserProfile, type CreateUserProfileData } from '@/services/userService';
 import { useRouter } from 'next/navigation';
@@ -37,14 +37,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-      if (userCredential.user) {
-        await createUserProfile(userCredential.user.uid, {
-          email: userCredential.user.email || data.email, // Use auth email if available
+      const user = userCredential.user;
+      if (user) {
+        // Update Firebase Auth profile with displayName
+        if (data.displayName) {
+          await updateProfile(user, { displayName: data.displayName });
+        }
+        
+        // Create user profile in Firestore
+        await createUserProfile(user.uid, {
+          email: user.email || data.email,
           displayName: data.displayName,
         });
+        
         toast({ title: 'Sign Up Successful', description: `Welcome, ${data.displayName || data.email}!` });
         router.push('/'); // Redirect to dashboard
-        return userCredential.user;
+        return user;
       }
       return null;
     } catch (error: any) {
@@ -59,7 +67,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-      toast({ title: 'Login Successful', description: `Welcome back, ${userCredential.user.email}!` });
+      toast({ title: 'Login Successful', description: `Welcome back, ${userCredential.user.displayName || userCredential.user.email}!` });
       router.push('/'); // Redirect to dashboard
       return userCredential.user;
     } catch (error: any) {

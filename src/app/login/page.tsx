@@ -35,7 +35,7 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 const signUpSchema = z.object({
-  displayName: z.string().min(2, { message: "Display name must be at least 2 characters." }).max(50, { message: "Display name too long."}).optional(),
+  displayName: z.string().min(2, { message: "Display name must be at least 2 characters." }).max(50, { message: "Display name too long."}),
   email: z.string().email({ message: "Invalid email address." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
   confirmPassword: z.string().min(6, { message: "Password must be at least 6 characters." }),
@@ -159,7 +159,7 @@ export default function LoginPage() {
                     name="displayName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-base">Display Name (Optional)</FormLabel>
+                        <FormLabel className="text-base">Display Name</FormLabel>
                         <FormControl>
                           <Input placeholder="Your Name" {...field} className="py-3 text-base"/>
                         </FormControl>
@@ -253,5 +253,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    
